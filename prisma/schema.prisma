@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  RUNNER
+  GROUP_LEADER
+  PARTNER
+  ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum PlanType {
+  FREE
+  GROUP_PRO
+  PARTNER
+  PREMIUM
+}
+
+enum DistanceType {
+  KM_5
+  KM_10
+  KM_15
+  KM_21
+  OPEN
+}
+
+enum RunLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EventType {
+  TRAINING
+  OFFICIAL_RACE
+  LONG_RUN
+  MEETUP
+  CHALLENGE
+}
+
+enum AttendanceStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model Tenant {
+  id          String           @id @default(cuid())
+  name        String
+  slug        String           @unique
+  status      TenantStatus     @default(ACTIVE)
+  plan        PlanType         @default(FREE)
+  timezone    String           @default("America/Recife")
+  users       User[]
+  groups      Group[]
+  runEvents   RunEvent[]
+  partners    Partner[]
+  achievements Achievement[]
+  settings    TenantSettings?
+  featureFlags FeatureFlag[]
+  notifications Notification[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model User {
+  id                String            @id @default(cuid())
+  tenantId          String
+  name              String
+  email             String
+  passwordHash      String?
+  image             String?
+  role              UserRole          @default(RUNNER)
+  city              String?
+  paceAvg           String?
+  preferredDistance DistanceType?
+  totalAttendances  Int               @default(0)
+  totalKm           Float             @default(0)
+  emailVerified     DateTime?
+  deletedAt         DateTime?
+  deletedBy         String?
+  tenant            Tenant            @relation(fields: [tenantId], references: [id])
+  groupMemberships  GroupMember[]
+  ledGroups         Group[]           @relation("GroupLeader")
+  attendances       Attendance[]
+  checkIns          CheckIn[]
+  achievements      UserAchievement[]
+  notifications     Notification[]
+  accounts          Account[]
+  sessions          Session[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([tenantId, email])
+  @@index([tenantId, role, deletedAt])
+}
+
+model Group {
+  id            String          @id @default(cuid())
+  tenantId      String
+  slug          String
+  name          String
+  description   String
+  logoUrl       String?
+  coverUrl      String?
+  meetingPoint  String
+  meetingDays   String[]
+  meetingTimes  String[]
+  distances     DistanceType[]
+  leaderUserId  String
+  status        ApprovalStatus  @default(PENDING)
+  reviewNotes   String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  planType      PlanType        @default(FREE)
+  deletedAt     DateTime?
+  deletedBy     String?
+  tenant        Tenant          @relation(fields: [tenantId], references: [id])
+  leader        User            @relation("GroupLeader", fields: [leaderUserId], references: [id])
+  members       GroupMember[]
+  runEvents     RunEvent[]
+  posts         CommunityPost[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, deletedAt])
+}
+
+model GroupMember {
+  id         String    @id @default(cuid())
+  tenantId   String
+  groupId    String
+  userId     String
+  role       UserRole  @default(RUNNER)
+  status     ApprovalStatus @default(APPROVED)
+  joinedAt   DateTime  @default(now())
+  deletedAt  DateTime?
+  deletedBy  String?
+  group      Group     @relation(fields: [groupId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@index([tenantId, status, deletedAt])
+}
+
+model RunEvent {
+  id              String        @id @default(cuid())
+  tenantId        String
+  groupId         String
+  slug            String
+  title           String
+  description     String
+  eventType       EventType
+  date            DateTime
+  startTime       DateTime
+  endTime         DateTime?
+  location        String
+  distance        DistanceType
+  level           RunLevel
+  suggestedPace   String?
+  capacity        Int?
+  createdById     String
+  checkInCode     String
+  checkInOpensAt  DateTime
+  checkInClosesAt DateTime
+  deletedAt       DateTime?
+  deletedBy       String?
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
+  group           Group         @relation(fields: [groupId], references: [id])
+  attendances     Attendance[]
+  checkIns        CheckIn[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, date, deletedAt])
+}
+
+model Attendance {
+  id          String           @id @default(cuid())
+  tenantId    String
+  runEventId  String
+  userId      String
+  status      AttendanceStatus @default(CONFIRMED)
+  confirmedAt DateTime         @default(now())
+  cancelledAt DateTime?
+  deletedAt   DateTime?
+  deletedBy   String?
+  runEvent    RunEvent         @relation(fields: [runEventId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
+  checkIn     CheckIn?
+
+  @@unique([runEventId, userId])
+  @@index([tenantId, status, deletedAt])
+}
+
+model CheckIn {
+  id           String     @id @default(cuid())
+  tenantId     String
+  runEventId   String
+  userId       String
+  attendanceId String     @unique
+  method       String
+  checkedInAt  DateTime   @default(now())
+  kmReported   Float?
+  deletedAt    DateTime?
+  deletedBy    String?
+  runEvent     RunEvent   @relation(fields: [runEventId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+  attendance   Attendance @relation(fields: [attendanceId], references: [id])
+
+  @@index([tenantId, checkedInAt, deletedAt])
+}
+
+model Partner {
+  id           String          @id @default(cuid())
+  tenantId     String
+  slug         String
+  name         String
+  category     String
+  logoUrl      String?
+  coverUrl     String?
+  gallery      String[]
+  description  String
+  address      String
+  whatsapp     String
+  instagram    String?
+  couponCode   String?
+  featured     Boolean         @default(false)
+  ownerUserId  String?
+  status       ApprovalStatus  @default(PENDING)
+  reviewNotes  String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  deletedAt    DateTime?
+  deletedBy    String?
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, deletedAt])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  tenantId    String
+  code        String
+  name        String
+  description String
+  icon        String
+  ruleType    String
+  ruleValue   Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  users       UserAchievement[]
+
+  @@unique([tenantId, code])
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  tenantId      String
+  userId        String
+  achievementId String
+  earnedAt      DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id])
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@index([tenantId, earnedAt])
+}
+
+model RankingSnapshot {
+  id              String   @id @default(cuid())
+  tenantId        String
+  periodType      String
+  periodKey       String
+  scopeType       String
+  groupId         String?
+  userId          String
+  attendanceCount Int
+  kmTotal         Float
+  score           Float
+  position        Int
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId, periodType, periodKey])
+}
+
+model CommunityPost {
+  id           String   @id @default(cuid())
+  tenantId     String
+  groupId      String
+  authorUserId String
+  title        String
+  content      String
+  imageUrl     String?
+  postType     String
+  deletedAt    DateTime?
+  deletedBy    String?
+  group        Group    @relation(fields: [groupId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, createdAt, deletedAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  type      String
+  title     String
+  message   String
+  actionUrl String?
+  readAt    DateTime?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, userId, readAt])
+}
+
+model TenantSettings {
+  id                   String   @id @default(cuid())
+  tenantId             String   @unique
+  cityDisplayName      String
+  logoUrl              String?
+  primaryColor         String?
+  bannerUrl            String?
+  socialLinks          Json?
+  whatsapp             String?
+  latitude             Float?
+  longitude            Float?
+  defaultEventRadiusKm Int      @default(5)
+  tenant               Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  tenantId    String
+  key         String
+  enabled     Boolean  @default(false)
+  description String?
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, key])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  actorUserId String?
+  entityType String
+  entityId   String
+  action     String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, entityType, entityId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
