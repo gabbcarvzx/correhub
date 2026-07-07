@@ -1,8 +1,9 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/shared/badge";
-import { Button } from "@/components/shared/button";
 import { Card } from "@/components/shared/card";
-import { events } from "@/features/demo/data/demo-data";
+import { CheckInButton } from "@/features/check-in/components/check-in-button";
+import { findEventById } from "@/features/events/data/events-repository";
+import { getCurrentTenant } from "@/lib/security/tenant";
 import { requireUser } from "@/lib/auth/require-user";
 
 export default async function CheckInPage({
@@ -13,7 +14,12 @@ export default async function CheckInPage({
   await requireUser();
 
   const { eventId } = await params;
-  const event = events.find((entry) => entry.id === eventId) ?? events[0];
+  const tenant = await getCurrentTenant();
+  const event = await findEventById(tenant.id, eventId);
+
+  if (!event) {
+    throw new Error("Event not found.");
+  }
 
   return (
     <AppShell footer={false}>
@@ -24,10 +30,10 @@ export default async function CheckInPage({
           <p className="mt-3 text-sm text-[var(--muted)]">Valide sua presenca com autenticacao, janela ativa e vinculacao ao tenant.</p>
           <div className="mt-6 rounded-[var(--radius-md)] bg-white p-4 ring-1 ring-[var(--border)]">
             <p className="text-sm text-[var(--muted)]">Evento</p>
-            <p className="mt-2 font-semibold">{event.groupName}</p>
+            <p className="mt-2 font-semibold">{event.group.name}</p>
             <p className="mt-1 text-sm text-[var(--muted)]">{event.location}</p>
           </div>
-          <Button className="mt-6 w-full">Registrar presenca</Button>
+          <CheckInButton runEventId={event.id} />
         </Card>
       </main>
     </AppShell>

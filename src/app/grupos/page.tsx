@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { GroupCard } from "@/components/shared/group-card";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { groups } from "@/features/demo/data/demo-data";
+import { listPublicGroups } from "@/features/groups/services/groups-service";
 
-export default function GroupsPage() {
+export default async function GroupsPage() {
+  const groups = await listPublicGroups();
+
   return (
     <AppShell>
       <main className="app-shell py-8">

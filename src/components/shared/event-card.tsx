@@ -4,6 +4,7 @@ import { formatDate, formatDistanceLabel } from "@/lib/utils";
 
 interface EventCardProps {
   event: {
+    id: string;
     title: string;
     groupName: string;
     date: string;
@@ -11,9 +12,10 @@ interface EventCardProps {
     distance: string;
     confirmedCount: number;
   };
+  action?: React.ReactNode;
 }
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, action }: EventCardProps) {
   return (
     <Card className="h-full">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary-strong)]">{event.groupName}</p>
@@ -32,6 +34,7 @@ export function EventCard({ event }: EventCardProps) {
           {event.confirmedCount} confirmados
         </p>
       </div>
+      {action ? <div className="mt-5">{action}</div> : null}
     </Card>
   );
 }

@@ -3,11 +3,12 @@ import { Badge } from "@/components/shared/badge";
 import { Card } from "@/components/shared/card";
 import { EventCard } from "@/components/shared/event-card";
 import { KpiCard } from "@/components/shared/kpi-card";
-import { events, leaderDashboard } from "@/features/demo/data/demo-data";
-import { requireUser } from "@/lib/auth/require-user";
+import { getLeaderDashboardData } from "@/features/dashboard/services/dashboard-service";
+import { requireRole } from "@/lib/auth/require-role";
 
 export default async function GroupDashboardPage() {
-  await requireUser();
+  const user = await requireRole(["GROUP_LEADER", "ADMIN"]);
+  const leaderDashboard = await getLeaderDashboardData(user.id);
 
   return (
     <AppShell>
@@ -25,7 +26,7 @@ export default async function GroupDashboardPage() {
           ))}
         </section>
         <section className="mt-8 grid gap-4 md:grid-cols-2">
-          {events.map((event) => (
+          {leaderDashboard.events?.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
         </section>

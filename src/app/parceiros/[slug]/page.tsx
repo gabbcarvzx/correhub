@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/shared/badge";
 import { Card } from "@/components/shared/card";
-import { partners } from "@/features/demo/data/demo-data";
+import { getPublicPartnerDetails } from "@/features/partners/services/partners-service";
 
 export default async function PartnerDetailsPage({
   params
@@ -10,7 +10,7 @@ export default async function PartnerDetailsPage({
   params: Promise<{ slug: string }>;
 }>) {
   const { slug } = await params;
-  const partner = partners.find((entry) => entry.slug === slug);
+  const partner = await getPublicPartnerDetails(slug);
 
   if (!partner) {
     notFound();

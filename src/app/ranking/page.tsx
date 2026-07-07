@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { RankingCard } from "@/components/shared/ranking-card";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { ranking } from "@/features/demo/data/demo-data";
+import { listCityRanking } from "@/features/rankings/services/rankings-service";
 
-export default function RankingPage() {
+export default async function RankingPage() {
+  const ranking = await listCityRanking();
+
   return (
     <AppShell>
       <main className="app-shell py-8">

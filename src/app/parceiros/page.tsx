@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { PartnerCard } from "@/components/shared/partner-card";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { partners } from "@/features/demo/data/demo-data";
+import { listPublicPartners } from "@/features/partners/services/partners-service";
 
-export default function PartnersPage() {
+export default async function PartnersPage() {
+  const partners = await listPublicPartners();
+
   return (
     <AppShell>
       <main className="app-shell py-8">

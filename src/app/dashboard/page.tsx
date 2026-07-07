@@ -2,11 +2,13 @@ import { AppShell } from "@/components/layout/app-shell";
 import { EventCard } from "@/components/shared/event-card";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PartnerCard } from "@/components/shared/partner-card";
-import { runnerDashboard } from "@/features/demo/data/demo-data";
+import { AttendanceToggleButton } from "@/features/attendance/components/attendance-toggle-button";
+import { getRunnerDashboardData } from "@/features/dashboard/services/dashboard-service";
 import { requireUser } from "@/lib/auth/require-user";
 
 export default async function DashboardPage() {
-  await requireUser();
+  const user = await requireUser();
+  const runnerDashboard = await getRunnerDashboardData(user.id);
 
   return (
     <AppShell>
@@ -23,7 +25,7 @@ export default async function DashboardPage() {
           <KpiCard label="Conquistas" value={runnerDashboard.achievements.length} />
         </section>
         <section className="mt-8 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <EventCard event={runnerDashboard.nextEvent} />
+          <EventCard action={<AttendanceToggleButton runEventId={runnerDashboard.nextEvent.id} status={runnerDashboard.nextEvent.attendanceStatus} />} event={runnerDashboard.nextEvent} />
           <CardList title="Ultimos check-ins" items={runnerDashboard.lastCheckIns} />
         </section>
         <section className="mt-8 grid gap-4 lg:grid-cols-2">

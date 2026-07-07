@@ -1,11 +1,12 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { Card } from "@/components/shared/card";
 import { KpiCard } from "@/components/shared/kpi-card";
-import { adminDashboard } from "@/features/demo/data/demo-data";
-import { requireUser } from "@/lib/auth/require-user";
+import { ModerationActionCard } from "@/features/admin/components/moderation-action-card";
+import { getAdminDashboardData } from "@/features/dashboard/services/dashboard-service";
+import { requireRole } from "@/lib/auth/require-role";
 
 export default async function AdminDashboardPage() {
-  await requireUser();
+  await requireRole(["ADMIN"]);
+  const adminDashboard = await getAdminDashboardData();
 
   return (
     <AppShell>
@@ -18,28 +19,22 @@ export default async function AdminDashboardPage() {
           ))}
         </section>
         <section className="mt-8 grid gap-4 lg:grid-cols-2">
-          <Card>
+          <div className="glass-panel rounded-[var(--radius-md)] p-5">
             <h2 className="text-xl font-bold">Grupos pendentes</h2>
             <div className="mt-4 grid gap-3">
               {adminDashboard.pendingGroups.map((group) => (
-                <div key={group.id} className="rounded-2xl bg-white p-4 ring-1 ring-[var(--border)]">
-                  <p className="font-semibold">{group.name}</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{group.description}</p>
-                </div>
+                <ModerationActionCard entityId={group.id} entityType="groups" key={group.id} subtitle={group.description} title={group.name} />
               ))}
             </div>
-          </Card>
-          <Card>
+          </div>
+          <div className="glass-panel rounded-[var(--radius-md)] p-5">
             <h2 className="text-xl font-bold">Parceiros pendentes</h2>
             <div className="mt-4 grid gap-3">
               {adminDashboard.pendingPartners.map((partner) => (
-                <div key={partner.slug} className="rounded-2xl bg-white p-4 ring-1 ring-[var(--border)]">
-                  <p className="font-semibold">{partner.name}</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{partner.category}</p>
-                </div>
+                <ModerationActionCard entityId={partner.id} entityType="partners" key={partner.id} subtitle={partner.category} title={partner.name} />
               ))}
             </div>
-          </Card>
+          </div>
         </section>
       </main>
     </AppShell>
