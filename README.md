@@ -1,111 +1,110 @@
 # CorreHub
 
-CorreHub e uma plataforma web para conectar grupos de corrida, corredores, lideres e parceiros locais em uma experiencia unica, premium e mobile-first. O projeto nasce com arquitetura multi-tenant por cidade, tendo Sao Lourenco da Mata como tenant piloto.
+Plataforma web para conectar grupos de corrida, corredores, lideres e parceiros locais. Arquitetura multi-tenant por cidade, com Sao Lourenco da Mata como tenant piloto.
 
 ## Stack
 
-- Next.js 15
+- Next.js 15 (App Router)
 - TypeScript
 - Tailwind CSS v4
 - Prisma ORM
-- PostgreSQL
-- Auth.js
-- Motion
-- React Hook Form
+- PostgreSQL (Supabase)
+- Auth.js (NextAuth v5)
 - Zod
+- React Hook Form
 - TanStack Table
 
-## Como instalar
+## Requisitos
 
-1. Instale as dependencias:
+- Node.js >= 18
+- npm
+- PostgreSQL (Supabase recomendado)
+- Docker Desktop (para Supabase local, opcional)
+
+## Instalacao
 
 ```bash
 npm install
 ```
 
-2. Crie o arquivo `.env` a partir do exemplo:
+## Configuracao das envs
+
+Copie o arquivo de exemplo e preencha as variaveis:
 
 ```bash
-copy .env.example .env
+cp .env.example .env
 ```
 
-3. Ajuste as variaveis:
+As variaveis necessarias estao documentadas em `.env.example`. Nenhuma credencial real deve ser commitada.
 
-```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/correhub?schema=public"
-AUTH_SECRET="uma-chave-segura"
-AUTH_URL="http://localhost:3000"
-GOOGLE_CLIENT_ID=""
-GOOGLE_CLIENT_SECRET=""
-```
-
-## Banco e Prisma
-
-Gerar o client Prisma:
-
-```bash
-npm run db:generate
-```
-
-Rodar migracoes locais:
-
-```bash
-npm run db:migrate -- --name init_correhub
-```
-
-Popular o banco com dados premium de demonstracao:
-
-```bash
-npm run db:seed
-```
-
-## Rodando localmente
+## Execucao local
 
 ```bash
 npm run dev
 ```
 
-Acesse:
+Acesse `http://localhost:3000`.
 
-- `/`
-- `/agenda`
-- `/grupos`
-- `/ranking`
-- `/parceiros`
-- `/comunidade`
-- `/dashboard`
+## Comandos disponiveis
 
-## Credenciais demo
+| Comando | Descricao |
+|---------|-----------|
+| `npm run dev` | Inicia servidor de desenvolvimento |
+| `npm run build` | Build de producao |
+| `npm start` | Inicia servidor de producao |
+| `npm run lint` | Verifica codigo com ESLint |
+| `npm test` | Executa testes unitarios |
+| `npm run typecheck` | Verifica tipos TypeScript |
+| `npm run db:generate` | Gera cliente Prisma |
+| `npm run db:migrate` | Executa migrations Prisma |
+| `npm run db:seed` | Popula banco com dados de exemplo |
 
-- Corredor: `runner@correhub.local` / `runner123`
-- Lider: `lider@correhub.local` / `lider123`
-- Admin: `admin@correhub.local` / `admin123`
+## Estrutura do projeto
 
-## Verificacao
-
-Lint:
-
-```bash
-npm run lint
+```
+src/
+  app/              # Rotas e paginas (App Router)
+  components/       # Componentes compartilhados
+  features/         # Modulos por dominio
+    auth/           # Autenticacao
+    check-in/       # Check-in em eventos
+    attendance/     # Confirmacao de presenca
+    events/         # Eventos
+    groups/         # Grupos de corrida
+    partners/       # Parceiros locais
+    rankings/       # Rankings
+    dashboard/      # Dashboards
+    admin/          # Moderacao
+    observability/  # Logging
+  lib/              # Utilidades e config
+    auth/           # Helpers de autenticacao
+    security/       # Seguranca multi-tenant
+  middleware.ts     # Edge middleware
+prisma/
+  schema.prisma     # Schema do banco
+  migrations/       # Migrations
+supabase/
+  migrations/       # RLS policies
+docs/               # Documentacao
 ```
 
-Build:
+## Credenciais demo (desenvolvimento)
+
+As credenciais de desenvolvimento estao definidas em `prisma/seed.ts` e no arquivo `src/auth.ts` para fallback. NUNCA utilize estas contas em producao.
+
+## Testes
 
 ```bash
-npm run build
+npm test
 ```
 
-## Deploy na Vercel
+## Seguranca
 
-1. Crie um banco PostgreSQL ou Neon.
-2. Configure `DATABASE_URL`, `AUTH_SECRET` e `AUTH_URL` no projeto da Vercel.
-3. Se quiser Google Login, configure `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
-4. Rode `prisma migrate deploy` no pipeline ou em etapa de release.
-5. Faça o deploy do app Next.js normalmente.
+- RLS (Row Level Security) no Supabase
+- Multi-tenant com isolamento por tenantId
+- Validacao de input com Zod em todas APIs
+- Rate limiting em endpoints criticos
+- Logger estruturado com correlation IDs
+- Security headers via middleware
 
-## Observacoes arquiteturais
-
-- `tenantId` foi preparado para isolamento por cidade.
-- slugs de grupos, parceiros e eventos devem ser tratados como imutaveis apos publicacao.
-- o projeto inclui base para `FeatureFlag`, `TenantSettings`, `StorageProvider` e logging estruturado.
-- o app atual entrega um MVP apresentavel com auth local demo, paginas publicas premium e dashboards protegidos.
+Veja `docs/production-checklist.md` para o checklist completo de producao.
