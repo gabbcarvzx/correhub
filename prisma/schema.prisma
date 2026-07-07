@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -225,6 +226,7 @@ model CheckIn {
   user         User       @relation(fields: [userId], references: [id])
   attendance   Attendance @relation(fields: [attendanceId], references: [id])
 
+  @@unique([runEventId, userId])
   @@index([tenantId, checkedInAt, deletedAt])
 }
 

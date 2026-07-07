@@ -36,11 +36,11 @@ export function LoginForm() {
     <form action={handleSubmit} className="mt-8 grid gap-4">
       <label className="grid gap-2 text-sm font-medium">
         Email
-        <input className="h-12 rounded-2xl border-0 bg-white px-4 ring-1 ring-[var(--border)]" defaultValue="runner@correhub.local" name="email" placeholder="voce@exemplo.com" type="email" />
+        <input className="h-12 rounded-2xl border-0 bg-white px-4 ring-1 ring-[var(--border)]" name="email" placeholder="voce@exemplo.com" type="email" />
       </label>
       <label className="grid gap-2 text-sm font-medium">
         Senha
-        <input className="h-12 rounded-2xl border-0 bg-white px-4 ring-1 ring-[var(--border)]" defaultValue="runner123" name="password" placeholder="••••••••" type="password" />
+        <input className="h-12 rounded-2xl border-0 bg-white px-4 ring-1 ring-[var(--border)]" name="password" placeholder="••••••••" type="password" />
       </label>
       {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
       <Button disabled={loading} type="submit">

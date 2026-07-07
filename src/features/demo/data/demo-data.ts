@@ -59,7 +59,8 @@ export const events = [
     distance: "KM_5",
     level: "BEGINNER",
     suggestedPace: "6:10-6:50/km",
-    confirmedCount: 42
+    confirmedCount: 42,
+    attendanceStatus: null
   },
   {
     id: "event-2",
@@ -73,7 +74,8 @@ export const events = [
     distance: "KM_15",
     level: "INTERMEDIATE",
     suggestedPace: "5:40-6:10/km",
-    confirmedCount: 55
+    confirmedCount: 55,
+    attendanceStatus: null
   },
   {
     id: "event-3",
@@ -87,7 +89,8 @@ export const events = [
     distance: "KM_10",
     level: "ADVANCED",
     suggestedPace: "Livre",
-    confirmedCount: 98
+    confirmedCount: 98,
+    attendanceStatus: null
   }
 ];
 
@@ -99,6 +102,7 @@ export const ranking = [
 
 export const partners = [
   {
+    id: "partner-1",
     slug: "studio-endorfina",
     name: "Studio Endorfina",
     category: "Academia",
@@ -109,6 +113,7 @@ export const partners = [
     coupon: "CORRE10"
   },
   {
+    id: "partner-2",
     slug: "passada-forte",
     name: "Passada Forte",
     category: "Loja de tenis",
@@ -153,7 +158,8 @@ export const leaderDashboard = {
     { label: "Membros ativos", value: "124" },
     { label: "Confirmados na semana", value: "67" },
     { label: "Check-ins no mes", value: "182" }
-  ]
+  ],
+  events
 };
 
 export const adminDashboard = {
@@ -167,6 +173,7 @@ export const adminDashboard = {
   pendingGroups: [groups[2]],
   pendingPartners: [
     {
+      id: "partner-pending-1",
       slug: "fisio-ponto-certo",
       name: "Fisio Ponto Certo",
       category: "Fisioterapia"
