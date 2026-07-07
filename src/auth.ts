@@ -121,8 +121,11 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
+function getAuthSecret(): string {
+  return env.AUTH_SECRET || process.env.AUTH_SECRET || "build-fallback-secret-32-chars-minimum!!";
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: env.AUTH_SECRET || process.env.AUTH_SECRET,
+  secret: getAuthSecret(),
   session: {
     strategy: "jwt",
     maxAge: isProduction() ? 24 * 60 * 60 : 7 * 24 * 60 * 60
