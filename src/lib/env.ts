@@ -24,39 +24,60 @@ const publicEnvSchema = z.object({
 
 type PrivateEnv = z.infer<typeof privateEnvSchema>;
 type PublicEnv = z.infer<typeof publicEnvSchema>;
+type Env = PrivateEnv & PublicEnv;
 
-let parsedEnv: (Partial<PrivateEnv> & PublicEnv) | null = null;
-let validated = false;
+let parsedEnv: Env | null = null;
 
-function getEnv(): Readonly<Partial<PrivateEnv> & PublicEnv> {
+function getPublicEnv(): PublicEnv {
+  const result = publicEnvSchema.safeParse(process.env);
+  return result.success ? (result.data as PublicEnv) : publicEnvSchema.parse({});
+}
+
+function getTestEnv(): Env {
+  return {
+    ...getPublicEnv(),
+    DATABASE_URL: "postgresql://test:test@localhost:5432/test",
+    DIRECT_URL: "postgresql://test:test@localhost:5432/test",
+    AUTH_SECRET: "test-secret-at-least-32-characters-long!!",
+    AUTH_URL: "http://localhost:3000",
+    NODE_ENV: "test",
+    LOG_LEVEL: "info"
+  };
+}
+
+function getBuildEnv(): Env {
+  return {
+    ...getPublicEnv(),
+    DATABASE_URL: "",
+    DIRECT_URL: "",
+    AUTH_SECRET: "build-fallback-secret-32-chars-minimum!!",
+    AUTH_URL: undefined,
+    AUTH_TRUST_HOST: undefined,
+    GOOGLE_CLIENT_ID: undefined,
+    GOOGLE_CLIENT_SECRET: undefined,
+    NODE_ENV: process.env.NODE_ENV as Env["NODE_ENV"] ?? "development",
+    SUPABASE_URL: undefined,
+    SUPABASE_ANON_KEY: undefined,
+    SUPABASE_SERVICE_ROLE_KEY: undefined,
+    LOG_LEVEL: (process.env.LOG_LEVEL as Env["LOG_LEVEL"]) ?? "info"
+  };
+}
+
+function getEnv(): Env {
   if (!parsedEnv) {
     if (process.env.NODE_ENV === "test") {
-      parsedEnv = privateEnvSchema.parse({
-        DATABASE_URL: "postgresql://test:test@localhost:5432/test",
-        DIRECT_URL: "postgresql://test:test@localhost:5432/test",
-        AUTH_SECRET: "test-secret-at-least-32-characters-long!!",
-        AUTH_URL: "http://localhost:3000",
-        NODE_ENV: "test"
-      });
+      parsedEnv = getTestEnv();
       return parsedEnv;
     }
 
-    const publicResult = publicEnvSchema.safeParse(process.env);
-    if (!publicResult.success) {
-      console.error("Invalid public env:", JSON.stringify(publicResult.error.issues));
-    }
-
-    parsedEnv = {
-      ...(publicResult.success ? (publicResult.data as PublicEnv) : publicEnvSchema.parse({})),
-      NODE_ENV: (process.env.NODE_ENV as "development" | "production" | "test") ?? "development"
-    } as Partial<PrivateEnv> & PublicEnv;
+    parsedEnv = getBuildEnv();
   }
   return parsedEnv;
 }
 
-export const env = new Proxy({} as PrivateEnv & PublicEnv, {
+export const env = new Proxy({} as Env, {
   get(_, prop: string | symbol) {
-    return getEnv()[prop as keyof (PrivateEnv & PublicEnv)];
+    return getEnv()[prop as keyof Env];
   }
 });
 
@@ -69,12 +90,9 @@ export function isDevelopment(): boolean {
 }
 
 export function validateRuntimeEnv(): void {
-  if (validated) return;
-  validated = true;
-
-  const result = privateEnvSchema.safeParse(process.env);
-  if (!result.success) {
-    const missing = result.error.issues
+  const privResult = privateEnvSchema.safeParse(process.env);
+  if (!privResult.success) {
+    const missing = privResult.error.issues
       .filter((i) => i.message.includes("Required"))
       .map((i) => i.path.join("."));
     if (missing.length > 0) {
@@ -83,7 +101,12 @@ export function validateRuntimeEnv(): void {
           "Check .env.example for the complete list."
       );
     }
-    console.error("Invalid runtime environment variables:", JSON.stringify(result.error.issues, null, 2));
+    console.error("Invalid runtime environment variables:", JSON.stringify(privResult.error.issues, null, 2));
     throw new Error("Invalid runtime environment configuration");
   }
+  const pubResult = publicEnvSchema.safeParse(process.env);
+  parsedEnv = {
+    ...privResult.data,
+    ...(pubResult.success ? (pubResult.data as PublicEnv) : publicEnvSchema.parse({}))
+  } as Env;
 }
