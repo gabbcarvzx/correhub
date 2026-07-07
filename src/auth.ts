@@ -20,9 +20,13 @@ interface RateLimitEntry {
 
 const loginAttempts = new Map<string, RateLimitEntry>();
 
-const MAX_LOGIN_ATTEMPTS = isProduction() ? 5 : 20;
-const LOCKOUT_DURATION_MS = isProduction() ? 15 * 60 * 1000 : 60 * 1000;
-const WINDOW_MS = isProduction() ? 15 * 60 * 1000 : 60 * 1000;
+function getIsProduction(): boolean {
+  try { return isProduction(); } catch { return false; }
+}
+
+const MAX_LOGIN_ATTEMPTS = getIsProduction() ? 5 : 20;
+const LOCKOUT_DURATION_MS = getIsProduction() ? 15 * 60 * 1000 : 60 * 1000;
+const WINDOW_MS = getIsProduction() ? 15 * 60 * 1000 : 60 * 1000;
 
 function checkRateLimit(identifier: string): void {
   const now = Date.now();
@@ -118,7 +122,7 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: env.AUTH_SECRET,
+  secret: env.AUTH_SECRET || process.env.AUTH_SECRET,
   session: {
     strategy: "jwt",
     maxAge: isProduction() ? 24 * 60 * 60 : 7 * 24 * 60 * 60
