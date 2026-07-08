@@ -26,7 +26,7 @@ export function CheckInButton({
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        toast.error(payload?.error ?? "Nao foi possivel registrar o check-in.");
+        toast.error(payload?.error ?? "Não foi possível registrar o check-in.");
         return;
       }
 
@@ -37,7 +37,7 @@ export function CheckInButton({
 
   return (
     <Button className="mt-6 w-full" disabled={pending} onClick={handleClick}>
-      {pending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "Registrar presenca"}
+      {pending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "Registrar presença"}
     </Button>
   );
 }

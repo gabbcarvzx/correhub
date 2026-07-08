@@ -8,16 +8,16 @@ export const testimonials = [
   {
     name: "Mariana Alves",
     role: "Corredora",
-    quote: "Descobri meu grupo ideal e nunca mais corri sozinha."
+    quote: "Antes eu corria sem rumo. O CorreHub me conectou com uma galera que tem o mesmo pique que o meu."
   },
   {
     name: "Carlos Teles",
-    role: "Lider de grupo",
-    quote: "A agenda e o check-in tiraram o caos do WhatsApp."
+    role: "Líder de grupo",
+    quote: "Organizar os treinos no WhatsApp era insustentável. O check-in salvou minha sanidade como líder."
   },
   {
     name: "Studio Endorfina",
     role: "Parceiro local",
-    quote: "Viramos referencia entre os corredores da cidade."
+    quote: "Nosso estúdio virou point oficial dos corredores. O movimento aumentou demais depois que entramos no app."
   }
 ];

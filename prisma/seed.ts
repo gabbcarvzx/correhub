@@ -25,13 +25,13 @@ async function main() {
 
   const tenant = await prisma.tenant.create({
     data: {
-      name: "Sao Lourenco da Mata",
+      name: "São Lourenço da Mata",
       slug: "sao-lourenco-da-mata",
       timezone: "America/Recife",
       plan: PlanType.PREMIUM,
       settings: {
         create: {
-          cityDisplayName: "Sao Lourenco da Mata",
+          cityDisplayName: "São Lourenço da Mata",
           primaryColor: "#22C55E",
           whatsapp: "5581999990000",
           defaultEventRadiusKm: 5,
@@ -46,7 +46,7 @@ async function main() {
           { key: "community_feed", enabled: true, description: "Feed da comunidade" },
           { key: "rankings", enabled: true, description: "Ranking municipal" },
           { key: "partners", enabled: true, description: "Marketplace local" },
-          { key: "notifications", enabled: true, description: "Inbox de notificacoes" },
+          { key: "notifications", enabled: true, description: "Inbox de notificações" },
           { key: "challenges", enabled: true, description: "Desafios e eventos especiais" },
           { key: "premium", enabled: false, description: "Recursos premium futuros" }
         ]
@@ -102,7 +102,7 @@ async function main() {
       tenantId: tenant.id,
       slug: "corre-capibaribe",
       name: "Corre Capibaribe",
-      description: "Treinos de rua e longoes dominicais com foco em constancia.",
+      description: "Treinos de rua e longões dominicais com foco em constância.",
       meetingPoint: "Praca do Centro",
       meetingDays: ["Ter", "Qui", "Dom"],
       meetingTimes: ["05:20", "05:20", "05:00"],
@@ -140,7 +140,7 @@ async function main() {
       groupId: group.id,
       slug: "intervalado-capibaribe-0807",
       title: "Intervalado de base",
-      description: "Sessao progressiva com aquecimento, blocos de 800m e desaquecimento.",
+      description: "Sessão progressiva com aquecimento, blocos de 800m e desaquecimento.",
       eventType: EventType.TRAINING,
       date: new Date("2026-07-08T05:20:00.000Z"),
       startTime: new Date("2026-07-08T05:20:00.000Z"),
@@ -181,7 +181,7 @@ async function main() {
       slug: "studio-endorfina",
       name: "Studio Endorfina",
       category: "Academia",
-      description: "Treinamento funcional para corredores com foco em prevencao de lesoes.",
+      description: "Treinamento funcional para corredores com foco em prevenção de lesões.",
       address: "Av. Central, 180",
       whatsapp: "81999990001",
       instagram: "@studioendorfina",
@@ -198,7 +198,7 @@ async function main() {
     data: [
       { tenantId: tenant.id, code: "FIRST_RUN", name: "Primeiro treino", description: "Concluiu o primeiro check-in.", icon: "medal", ruleType: "CHECKIN_COUNT", ruleValue: 1 },
       { tenantId: tenant.id, code: "KM_50", name: "50 km", description: "Acumulou 50 km.", icon: "zap", ruleType: "KM_TOTAL", ruleValue: 50 },
-      { tenantId: tenant.id, code: "CHECKINS_10", name: "10 check-ins", description: "Registrou 10 presencas.", icon: "trophy", ruleType: "CHECKIN_COUNT", ruleValue: 10 }
+      { tenantId: tenant.id, code: "CHECKINS_10", name: "10 check-ins", description: "Registrou 10 presenças.", icon: "trophy", ruleType: "CHECKIN_COUNT", ruleValue: 10 }
     ]
   });
 
@@ -224,8 +224,8 @@ async function main() {
       tenantId: tenant.id,
       groupId: group.id,
       authorUserId: leader.id,
-      title: "Mudanca de percurso",
-      content: "O treino de quinta saira da praca e seguira pela avenida principal por causa de obra no trecho antigo.",
+      title: "Mudança de percurso",
+      content: "O treino de quinta sairá da praça e seguirá pela avenida principal por causa de obra no trecho antigo.",
       postType: "ANNOUNCEMENT"
     }
   });
@@ -236,8 +236,8 @@ async function main() {
         tenantId: tenant.id,
         userId: runner.id,
         type: "EVENT_REMINDER",
-        title: "Treino amanha",
-        message: "Seu proximo treino comeca amanha as 05:20.",
+        title: "Treino amanhã",
+        message: "Seu próximo treino começa amanhã às 05:20.",
         actionUrl: "/agenda"
       },
       {

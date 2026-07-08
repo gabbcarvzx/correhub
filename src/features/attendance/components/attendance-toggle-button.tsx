@@ -29,19 +29,19 @@ export function AttendanceToggleButton({
       });
 
       if (!response.ok) {
-        toast.error("Nao foi possivel atualizar sua presenca.");
+        toast.error("Não foi possível atualizar sua presença.");
         return;
       }
 
       setCurrentStatus(currentStatus === "CONFIRMED" ? "CANCELLED" : "CONFIRMED");
-      toast.success(currentStatus === "CONFIRMED" ? "Presenca cancelada." : "Presenca confirmada.");
+      toast.success(currentStatus === "CONFIRMED" ? "Presença cancelada." : "Presença confirmada.");
       router.refresh();
     });
   }
 
   return (
     <Button className="w-full" disabled={pending} onClick={handleClick} variant={currentStatus === "CONFIRMED" ? "secondary" : "primary"}>
-      {pending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : currentStatus === "CONFIRMED" ? "Cancelar presenca" : "Vou participar"}
+      {pending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : currentStatus === "CONFIRMED" ? "Cancelar presença" : "Vou participar"}
     </Button>
   );
 }

@@ -35,7 +35,7 @@ export function ModerationActionCard({
       });
 
       if (!response.ok) {
-        toast.error("Nao foi possivel registrar a moderacao.");
+        toast.error("Não foi possível registrar a moderação.");
         return;
       }
 
@@ -45,13 +45,13 @@ export function ModerationActionCard({
   }
 
   return (
-    <div className="rounded-2xl bg-white p-4 ring-1 ring-[var(--border)]">
+    <div className="rounded-2xl bg-surface-solid p-4 border border-border">
       <p className="font-semibold">{title}</p>
-      <p className="mt-1 text-sm text-[var(--muted)]">{subtitle}</p>
+      <p className="mt-1 text-sm text-muted">{subtitle}</p>
       <textarea
-        className="mt-4 min-h-24 w-full rounded-2xl border-0 bg-slate-50 p-4 ring-1 ring-[var(--border)]"
+        className="mt-4 min-h-24 w-full rounded-2xl border border-border bg-slate-50 p-4"
         onChange={(event) => setReviewNotes(event.target.value)}
-        placeholder="Observacoes do admin"
+        placeholder="Observações do admin"
         value={reviewNotes}
       />
       <div className="mt-4 flex gap-3">

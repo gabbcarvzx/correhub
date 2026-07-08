@@ -1,6 +1,6 @@
 export const tenant = {
   id: "tenant-sao-lourenco",
-  name: "Sao Lourenco da Mata",
+  name: "São Lourenço da Mata",
   slug: "sao-lourenco-da-mata"
 };
 
@@ -9,7 +9,7 @@ export const groups = [
     id: "group-1",
     slug: "corre-capibaribe",
     name: "Corre Capibaribe",
-    description: "Treinos de rua e longoes dominicais com foco em constancia.",
+    description: "Treinos de rua e longões dominicais com foco em constância.",
     leader: "Ana Paixao",
     meetingPoint: "Praca do Centro",
     days: ["Ter", "Qui", "Dom"],
@@ -22,7 +22,7 @@ export const groups = [
     id: "group-2",
     slug: "pace-lourenco",
     name: "Pace Lourenco",
-    description: "Grupo para evolucao de ritmo com acompanhamento leve e acolhedor.",
+    description: "Grupo para evolução de ritmo com acompanhamento leve e acolhedor.",
     leader: "Carlos Teles",
     meetingPoint: "Parque da Vitoria",
     days: ["Seg", "Qua", "Sab"],
@@ -34,7 +34,7 @@ export const groups = [
   {
     id: "group-3",
     slug: "longao-da-mata",
-    name: "Longao da Mata",
+    name: "Longão da Mata",
     description: "Base de endurance para meia maratona e corridas oficiais.",
     leader: "Joao Henrique",
     meetingPoint: "Arena das Aguas",
@@ -65,7 +65,7 @@ export const events = [
   {
     id: "event-2",
     slug: "longao-vitoria-1207",
-    title: "Longao progressivo",
+    title: "Longão progressivo",
     groupSlug: "pace-lourenco",
     groupName: "Pace Lourenco",
     eventType: "LONG_RUN",
@@ -106,7 +106,7 @@ export const partners = [
     slug: "studio-endorfina",
     name: "Studio Endorfina",
     category: "Academia",
-    description: "Treinamento funcional para corredores com foco em prevencao de lesoes.",
+    description: "Treinamento funcional para corredores com foco em prevenção de lesões.",
     whatsapp: "81999990001",
     instagram: "@studioendorfina",
     address: "Av. Central, 180",
@@ -116,8 +116,8 @@ export const partners = [
     id: "partner-2",
     slug: "passada-forte",
     name: "Passada Forte",
-    category: "Loja de tenis",
-    description: "Curadoria de tenis, relogios e acessorios de performance.",
+    category: "Loja de tênis",
+    description: "Curadoria de tênis, relógios e acessórios de performance.",
     whatsapp: "81999990002",
     instagram: "@passadaforte",
     address: "Rua do Comercio, 44",
@@ -129,20 +129,20 @@ export const posts = [
   {
     id: "post-1",
     groupName: "Corre Capibaribe",
-    title: "Mudanca de percurso",
-    content: "O treino de quinta saira da praca e seguira pela avenida principal por causa de obra no trecho antigo."
+    title: "Mudança de percurso",
+    content: "O treino de quinta sairá da praça e seguirá pela avenida principal por causa de obra no trecho antigo."
   },
   {
     id: "post-2",
     groupName: "Pace Lourenco",
-    title: "Convite para longao",
-    content: "Domingo teremos cafe de recuperacao no fim do treino. Leve um amigo."
+    title: "Convite para longão",
+    content: "Domingo teremos café de recuperação no fim do treino. Leve um amigo."
   }
 ];
 
 export const runnerDashboard = {
   nextEvent: events[0],
-  lastCheckIns: ["Treino regenerativo", "Longao 15K", "Desafio de subida"],
+  lastCheckIns: ["Treino regenerativo", "Longão 15K", "Desafio de subida"],
   monthKm: 86,
   rankingPosition: 7,
   mainGroup: groups[0],

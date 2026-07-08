@@ -1,16 +1,19 @@
-import { Card } from "@/components/shared/card";
+import { Card } from "@/components/ui/card"
+import { MotionDiv } from "@/components/ui/motion-wrapper"
 
 export function KpiCard({
   label,
   value
 }: Readonly<{
-  label: string;
-  value: string | number;
+  label: string
+  value: string | number
 }>) {
   return (
-    <Card>
-      <p className="text-sm text-[var(--muted)]">{label}</p>
-      <p className="mt-3 text-3xl font-black">{value}</p>
-    </Card>
-  );
+    <MotionDiv whileHover={{ y: -2 }}>
+      <Card variant="elevated" className="border border-border p-5 shadow-sm">
+        <p className="text-sm text-fg-secondary">{label}</p>
+        <p className="mt-3 text-3xl font-black">{value}</p>
+      </Card>
+    </MotionDiv>
+  )
 }
