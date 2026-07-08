@@ -1,30 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle } from "lucide-react";
-import { Button } from "@/components/shared/button";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { loginSchema, type LoginData } from "@/lib/validations/auth";
+import { toast } from "sonner";
 
 export function LoginForm() {
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(formData: FormData) {
-    setLoading(true);
-    setError(null);
+  const form = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
+  const { handleSubmit, formState } = form;
+  const { isSubmitting } = formState;
+
+  async function onSubmit(data: LoginData) {
     const result = await signIn("credentials", {
-      email: String(formData.get("email") ?? ""),
-      password: String(formData.get("password") ?? ""),
-      redirect: false
+      email: data.email,
+      password: data.password,
+      redirect: false,
     });
 
-    setLoading(false);
-
     if (result?.error) {
-      setError("Credenciais invalidas.");
+      toast.error("Credenciais inválidas.");
       return;
     }
 
@@ -33,22 +48,52 @@ export function LoginForm() {
   }
 
   return (
-    <form action={handleSubmit} className="mt-8 grid gap-4">
-      <label className="grid gap-2 text-sm font-medium">
-        Email
-        <input className="h-12 rounded-2xl border-0 bg-white px-4 ring-1 ring-[var(--border)]" name="email" placeholder="voce@exemplo.com" type="email" />
-      </label>
-      <label className="grid gap-2 text-sm font-medium">
-        Senha
-        <input className="h-12 rounded-2xl border-0 bg-white px-4 ring-1 ring-[var(--border)]" name="password" placeholder="••••••••" type="password" />
-      </label>
-      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-      <Button disabled={loading} type="submit">
-        {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "Entrar"}
+    <FormProvider {...form}>
+    <form onSubmit={handleSubmit(onSubmit)} className="mt-8 grid gap-5">
+      <FormField
+        control={form.control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="você@exemplo.com"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="password"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Senha</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="••••••••"
+                type="password"
+                autoComplete="current-password"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <Button disabled={isSubmitting} type="submit" size="lg" className="w-full">
+        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
       </Button>
-      <Button disabled type="button" variant="secondary">
+      <Button disabled type="button" variant="outline" size="lg" className="w-full">
         Continuar com Google
       </Button>
     </form>
+    </FormProvider>
   );
 }
