@@ -88,9 +88,20 @@ supabase/
 docs/               # Documentacao
 ```
 
-## Credenciais demo (desenvolvimento)
+## Deploy
 
-As credenciais de desenvolvimento estao definidas em `prisma/seed.ts` e no arquivo `src/auth.ts` para fallback. NUNCA utilize estas contas em producao.
+O deploy e automatico via Vercel conectada ao repositorio GitHub.
+
+1. Configure as variaveis de ambiente no dashboard da Vercel conforme `.env.example`
+2. Faça push para a branch `main` para disparar o deploy automatico
+3. A Vercel detecta automaticamente o Next.js e executa `next build`
+
+Variaveis obrigatorias para producao:
+
+- `DATABASE_URL` — conexao com PostgreSQL via pooler (Supabase)
+- `DIRECT_URL` — conexao direta para migrations
+- `AUTH_SECRET` — chave aleatoria segura (gerar com `openssl rand -base64 64`)
+- `AUTH_URL` — URL de producao da aplicacao
 
 ## Testes
 
@@ -106,5 +117,9 @@ npm test
 - Rate limiting em endpoints criticos
 - Logger estruturado com correlation IDs
 - Security headers via middleware
+
+## Licenca
+
+Este projeto e de uso restrito e nao possui licenca publica. Consulte os mantenedores para mais informacoes.
 
 Veja `docs/production-checklist.md` para o checklist completo de producao.
