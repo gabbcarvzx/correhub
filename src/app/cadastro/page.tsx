@@ -76,7 +76,7 @@ export default function RegisterPage() {
   return (
     <AppShell footer={false}>
       <PageTransition>
-        <main className="app-shell grid min-h-[calc(100vh-88px)] items-center py-10">
+        <div className="app-shell grid min-h-[calc(100vh-88px)] items-center py-10">
           <Card variant="elevated" className="mx-auto w-full max-w-2xl p-8">
             <h1 className="text-3xl font-black">Criar conta</h1>
             <p className="mt-3 text-sm text-muted">Cadastre-se como corredor e evolua depois para líder ou parceiro.</p>
@@ -172,7 +172,7 @@ export default function RegisterPage() {
               </Link>
             </p>
           </Card>
-        </main>
+        </div>
       </PageTransition>
     </AppShell>
   );

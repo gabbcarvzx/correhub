@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CalendarRange, Medal, Users, MapPin, TrendingUp, Zap, Shield, UserPlus, CalendarCheck } from "lucide-react";
+import { ArrowRight, CalendarRange, Medal, Users, MapPin, TrendingUp, Zap, Shield, UserPlus, CalendarCheck, Crown, Flame } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { heroStats, testimonials } from "@/features/marketing/data/marketing-data";
 import { PageTransition } from "@/components/ui/page-transition";
+import type { RunnerOfWeekResult } from "@/features/runner-of-week/services/runner-of-week-service";
 
 const features = [
   { icon: Users, title: "Comunidade viva", text: "Grupos ativos, feed local e parceiros reais da cidade." },
@@ -56,7 +57,11 @@ const faqItems = [
   }
 ];
 
-export function MarketingHomePage() {
+export function MarketingHomePage({
+  runnerOfWeek,
+}: {
+  runnerOfWeek?: RunnerOfWeekResult | null;
+}) {
   return (
     <AppShell>
       <PageTransition>
@@ -98,6 +103,63 @@ export function MarketingHomePage() {
                 ))}
               </div>
             </section>
+
+            {/* Runner of the Week */}
+            {runnerOfWeek && (
+              <section>
+                <div className="mb-8 text-center">
+                  <Badge variant="default" size="sm" className="bg-amber-100 text-amber-800 border-amber-200">
+                    <Crown className="mr-1 h-3 w-3" />
+                    Destaque da Semana
+                  </Badge>
+                  <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
+                    Quem está puxando o pace
+                  </h2>
+                </div>
+                <Card variant="elevated" className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 p-8 text-white shadow-lg md:p-12">
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.3),transparent_50%)]" />
+                  <div className="relative flex flex-col items-center gap-8 md:flex-row">
+                    <div className="flex-shrink-0">
+                      <div className="h-24 w-24 overflow-hidden rounded-full ring-4 ring-white/40 shadow-xl">
+                        {runnerOfWeek.image ? (
+                          <img
+                            src={runnerOfWeek.image}
+                            alt={runnerOfWeek.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-white/20 text-4xl font-bold text-white">
+                            {runnerOfWeek.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 text-center md:text-left">
+                      <p className="text-sm uppercase tracking-[0.2em] text-white/70">Atleta da semana</p>
+                      <h3 className="mt-2 text-3xl font-black">{runnerOfWeek.name}</h3>
+                      <div className="mt-4 flex flex-wrap justify-center gap-6 text-sm md:justify-start">
+                        <span className="flex items-center gap-1.5">
+                          <TrendingUp className="h-4 w-4" />
+                          {runnerOfWeek.totalKm} km na semana
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Flame className="h-4 w-4" />
+                          Streak: {runnerOfWeek.currentStreak} dias
+                        </span>
+                      </div>
+                      <div className="mt-6">
+                        <Button asChild variant="secondary" size="sm">
+                          <Link href={`/atleta/${runnerOfWeek.name}`}>
+                            Ver perfil
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </section>
+            )}
 
             <section className="grid gap-6 md:grid-cols-3">
               {features.map(({ icon: Icon, title, text }) => (

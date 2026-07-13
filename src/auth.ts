@@ -5,151 +5,166 @@ import Google from "next-auth/providers/google";
 import { compareSync } from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { env, isProduction } from "@/lib/env";
+import { env } from "@/lib/env";
+import { logger } from "@/features/observability/logger";
+import { sanitizeRole, sanitizeTenantId } from "@/lib/auth/helpers";
+import { checkRateLimit, clearRateLimit } from "@/lib/security/rate-limit";
 
 const credentialsSchema = z.object({
-  email: z.string().email("Email invalido."),
-  password: z.string().min(8, "Senha deve ter no minimo 8 caracteres.").max(128)
+  email: z.string().email("Email inválido."),
+  password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres.").max(128),
 });
 
-interface RateLimitEntry {
-  count: number;
-  firstAttemptAt: number;
-  lockedUntil: number | null;
-}
+// ---------------------------------------------------------------------------
+// Rate limiting — login via Redis distribuído
+// Antes: Map em memória. Agora: Upstash Redis com sliding window.
+// ---------------------------------------------------------------------------
 
-const loginAttempts = new Map<string, RateLimitEntry>();
+const isProductionEnv = env.NODE_ENV === "production";
 
-function getIsProduction(): boolean {
-  try { return isProduction(); } catch { return false; }
-}
+async function checkLoginRateLimit(identifier: string): Promise<void> {
+  const result = await checkRateLimit({
+    identifier,
+    config: {
+      windowMs: isProductionEnv ? 15 * 60 * 1000 : 60 * 1000,   // 15min prod, 1min dev
+      maxRequests: isProductionEnv ? 5 : 20,
+    },
+    scope: "ip",
+    storeName: "login",
+  });
 
-const MAX_LOGIN_ATTEMPTS = getIsProduction() ? 5 : 20;
-const LOCKOUT_DURATION_MS = getIsProduction() ? 15 * 60 * 1000 : 60 * 1000;
-const WINDOW_MS = getIsProduction() ? 15 * 60 * 1000 : 60 * 1000;
-
-function checkRateLimit(identifier: string): void {
-  const now = Date.now();
-  const entry = loginAttempts.get(identifier);
-
-  if (entry?.lockedUntil && entry.lockedUntil > now) {
-    const remainingMinutes = Math.ceil((entry.lockedUntil - now) / 60000);
-    throw new Error(`Conta temporariamente bloqueada. Tente novamente em ${remainingMinutes} minuto(s).`);
-  }
-
-  if (entry) {
-    if (now - entry.firstAttemptAt > WINDOW_MS && entry.lockedUntil === null) {
-      loginAttempts.set(identifier, { count: 1, firstAttemptAt: now, lockedUntil: null });
-      return;
-    }
-
-    if (entry.count >= MAX_LOGIN_ATTEMPTS) {
-      entry.lockedUntil = now + LOCKOUT_DURATION_MS;
-      entry.count = 0;
-      throw new Error(`Conta bloqueada por ${LOCKOUT_DURATION_MS / 60000} minutos devido a multiplas tentativas de login.`);
-    }
-  } else {
-    loginAttempts.set(identifier, { count: 0, firstAttemptAt: now, lockedUntil: null });
+  if (!result.allowed) {
+    const retryAfterSeconds = Math.ceil(result.resetInMs / 1000);
+    throw new Error(
+      `Conta temporariamente bloqueada. Tente novamente em ${Math.ceil(retryAfterSeconds / 60)} minuto(s).`
+    );
   }
 }
 
-function recordAttempt(identifier: string, failed: boolean): void {
-  const entry = loginAttempts.get(identifier);
-  if (entry && failed) {
-    entry.count = (entry.count ?? 0) + 1;
-  }
+async function clearLoginRateLimit(identifier: string): Promise<void> {
+  await clearRateLimit({ identifier, storeName: "login" });
 }
 
-function clearRateLimit(identifier: string): void {
-  loginAttempts.delete(identifier);
-}
-
+// ---------------------------------------------------------------------------
+// Providers
+// ---------------------------------------------------------------------------
 const providers: Provider[] = [
   Credentials({
     name: "Credentials",
     credentials: {
       email: { label: "Email", type: "email" },
-      password: { label: "Senha", type: "password" }
+      password: { label: "Senha", type: "password" },
     },
     async authorize(rawCredentials) {
       const parsed = credentialsSchema.safeParse(rawCredentials);
-
       if (!parsed.success) {
+        logger.warn("auth.credentials.invalid", {
+          error: parsed.error.flatten().fieldErrors,
+        });
         return null;
       }
 
       const { email, password } = parsed.data;
-      const identifier = `login:${email}`;
+      const identifier = `login:${email.toLowerCase().trim()}`;
 
       try {
-        checkRateLimit(identifier);
+        await checkLoginRateLimit(identifier);
       } catch {
+        logger.warn("auth.rate_limit.exceeded", { identifier: email });
         return null;
       }
 
-      const persistedUser = await db.user.findFirst({
-        where: {
-          email,
-          deletedAt: null
-        }
-      }).catch(() => null);
+      const persistedUser = await db.user
+        .findFirst({
+          where: {
+            email: email.toLowerCase().trim(),
+            deletedAt: null,
+          },
+        })
+        .catch((error) => {
+          logger.error("auth.user_lookup_failed", {
+            error: String(error),
+            email,
+          });
+          return null;
+        });
 
       if (persistedUser?.passwordHash && compareSync(password, persistedUser.passwordHash)) {
-        clearRateLimit(identifier);
+        await clearLoginRateLimit(identifier);
+        logger.info("auth.login.success", { userId: persistedUser.id, role: persistedUser.role });
+
         return {
           id: persistedUser.id,
           name: persistedUser.name,
           email: persistedUser.email,
           role: persistedUser.role,
-          tenantId: persistedUser.tenantId
+          tenantId: persistedUser.tenantId,
         };
       }
 
-      recordAttempt(identifier, true);
+      // Login falhou — o rate limit já foi incrementado pelo sliding window
+      logger.warn("auth.login.failed", { email });
 
       return null;
-    }
-  })
+    },
+  }),
 ];
 
+// Adiciona Google provider apenas se configurado
 if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   providers.push(
     Google({
       clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
     })
   );
 }
 
+/**
+ * Retorna o AUTH_SECRET de forma segura.
+ * NUNCA retorna um fallback hardcoded — em produção, lança erro se não estiver definido.
+ */
 function getAuthSecret(): string {
-  return env.AUTH_SECRET || process.env.AUTH_SECRET || "fallback-secret-only-for-build-32chars";
+  const secret = env.AUTH_SECRET;
+  if (!secret || secret.length < 32) {
+    if (env.NODE_ENV === "production") {
+      throw new Error(
+        "AUTH_SECRET is required in production and must be at least 32 characters long."
+      );
+    }
+    // Em dev, retorna um fallback SEGURO apenas para desenvolvimento local
+    return "dev-secret-at-least-32-characters-long!!";
+  }
+  return secret;
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: getAuthSecret(),
   session: {
     strategy: "jwt",
-    maxAge: isProduction() ? 24 * 60 * 60 : 7 * 24 * 60 * 60
+    maxAge: env.NODE_ENV === "production" ? 24 * 60 * 60 : 7 * 24 * 60 * 60, // 24h prod, 7d dev
   },
   providers,
   pages: {
-    signIn: "/login"
+    signIn: "/login",
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
-        token.tenantId = user.tenantId;
+        // Valida e sanitiza os claims que vêm do banco
+        token.role = sanitizeRole(user.role);
+        token.tenantId = sanitizeTenantId(user.tenantId);
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
-        session.user.role = typeof token.role === "string" ? token.role : "RUNNER";
-        session.user.tenantId = typeof token.tenantId === "string" ? token.tenantId : "";
+        // Sempre sanitiza as claims do token (proteção contra tokens forjados/inválidos)
+        session.user.role = sanitizeRole(token.role);
+        session.user.tenantId = sanitizeTenantId(token.tenantId);
       }
       return session;
-    }
-  }
+    },
+  },
 });

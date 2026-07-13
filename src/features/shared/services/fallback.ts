@@ -1,17 +1,16 @@
-export async function withFallback<T>(input: {
-  query: () => Promise<T>;
-  fallback: () => T;
-  isEmpty?: (value: T) => boolean;
-}): Promise<T> {
-  try {
-    const value = await input.query();
+/**
+ * @deprecated
+ *
+ * Serviços enterprise não utilizam mais fallback para dados demo.
+ * Erros devem ser lançados e tratados explicitamente.
+ *
+ * Mantido apenas como stub para evitar breaking imports até
+ * que todos os consumers sejam atualizados.
+ */
 
-    if (input.isEmpty ? input.isEmpty(value) : !value) {
-      return input.fallback();
-    }
-
-    return value;
-  } catch {
-    return input.fallback();
-  }
+export async function withFallback<T>(): Promise<T> {
+  throw new Error(
+    "withFallback was removed. Configure a real database connection " +
+    "instead of relying on demo/mock data fallbacks."
+  );
 }

@@ -1,116 +1,96 @@
-import { groups as demoGroups } from "@/features/demo/data/demo-data";
 import { findApprovedGroupBySlug, findApprovedGroupsByTenant, findLeaderGroups, findPendingGroups, updateGroupModeration } from "@/features/groups/data/groups-repository";
 import { findPublicGroupEventsByTenant } from "@/features/events/data/events-repository";
-import { ranking as demoRanking } from "@/features/demo/data/demo-data";
 import type { GroupCardModel, RankingCardModel } from "@/features/shared/types";
-import { withFallback } from "@/features/shared/services/fallback";
+import { getCachedSignedUrl } from "@/features/uploads/signed-url-cache";
 import { getCurrentTenant, getAuthenticatedTenant } from "@/lib/security/tenant";
 import { createAuditLog } from "@/features/admin/data/audit-log-repository";
+import { logger, getLogger } from "@/features/observability/logger";
 
 export async function listPublicGroups(): Promise<GroupCardModel[]> {
   const tenant = await getCurrentTenant();
+  const log = getLogger({ tenantId: tenant.id });
 
-  return withFallback({
-    query: async () => {
-      const records = await findApprovedGroupsByTenant(tenant.id);
-      return records.map((group) => ({
-        id: group.id,
-        slug: group.slug,
-        name: group.name,
-        description: group.description,
-        leader: group.leader.name,
-        meetingPoint: group.meetingPoint,
-        members: group.members.length,
-        status: group.status
-      }));
-    },
-    fallback: () =>
-      demoGroups
-        .filter((group) => group.status === "APPROVED")
-        .map((group) => ({
-          id: group.id,
-          slug: group.slug,
-          name: group.name,
-          description: group.description,
-          leader: group.leader,
-          meetingPoint: group.meetingPoint,
-          members: group.members,
-          status: "APPROVED" as const
-        })),
-    isEmpty: (value) => value.length === 0
-  });
+  const records = await findApprovedGroupsByTenant(tenant.id);
+
+  if (records.length === 0) {
+    log.info("groups.list.empty");
+    return [];
+  }
+
+  // Converte storage keys para signed URLs em lote
+  const signedUrls = await Promise.all(
+    records.map(async (g) => ({
+      slug: g.slug,
+      signedLogoUrl: g.logoUrl ? await getCachedSignedUrl(g.logoUrl) : null,
+    }))
+  );
+  const signedUrlMap = new Map(signedUrls.map((s) => [s.slug, s.signedLogoUrl]));
+
+  return records.map((group) => ({
+    id: group.id,
+    slug: group.slug,
+    name: group.name,
+    description: group.description,
+    leader: group.leader.name,
+    meetingPoint: group.meetingPoint,
+    members: group.members.length,
+    status: group.status,
+    logoUrl: signedUrlMap.get(group.slug) ?? null,
+  }));
 }
 
 export async function getPublicGroupDetails(slug: string) {
   const tenant = await getCurrentTenant();
+  const log = getLogger({ tenantId: tenant.id, slug });
 
-  return withFallback({
-    query: async () => {
-      const group = await findApprovedGroupBySlug(tenant.id, slug);
+  const group = await findApprovedGroupBySlug(tenant.id, slug);
 
-      if (!group) {
-        return null;
-      }
+  if (!group) {
+    log.info("groups.details.not_found");
+    return null;
+  }
 
-      const events = await findPublicGroupEventsByTenant(tenant.id, group.id);
+  const logoUrl = group.logoUrl ? await getCachedSignedUrl(group.logoUrl) : null;
 
-      const mappedRanking: RankingCardModel[] = (group.members ?? []).map((member, index) => ({
-        position: index + 1,
-        name: member.user?.name ?? "Corredor",
-        group: group.name,
-        attendances: 0,
-        km: 0
-      }));
+  const events = await findPublicGroupEventsByTenant(tenant.id, group.id);
 
-      return {
-        group: {
-          id: group.id,
-          slug: group.slug,
-          name: group.name,
-          description: group.description,
-          leader: group.leader.name,
-          meetingPoint: group.meetingPoint,
-          members: group.members.length,
-          status: group.status
-        },
-        events: events.map((event) => ({
-          id: event.id,
-          slug: event.slug,
-          title: event.title,
-          groupName: event.group.name,
-          groupSlug: event.group.slug,
-          date: event.date.toISOString(),
-          location: event.location,
-          distance: event.distance,
-          level: event.level,
-          suggestedPace: event.suggestedPace ?? "Livre",
-          confirmedCount: event.attendances.length,
-          attendanceStatus: null
-        })),
-        ranking: mappedRanking
-      };
+  const mappedRanking: RankingCardModel[] = (group.members ?? []).map((member, index) => ({
+    position: index + 1,
+    name: member.user?.name ?? "Corredor",
+    group: group.name,
+    attendances: 0,
+    km: 0,
+  }));
+
+  return {
+    group: {
+      id: group.id,
+      slug: group.slug,
+      name: group.name,
+      description: group.description,
+      leader: group.leader.name,
+      leaderUserId: group.leaderUserId,
+      meetingPoint: group.meetingPoint,
+      members: group.members.length,
+      status: group.status,
+      logoUrl,
     },
-    fallback: () => {
-      const group = demoGroups.find((entry) => entry.slug === slug && entry.status === "APPROVED");
-      if (!group) {
-        return null;
-      }
-      return {
-        group: {
-          id: group.id,
-          slug: group.slug,
-          name: group.name,
-          description: group.description,
-          leader: group.leader,
-          meetingPoint: group.meetingPoint,
-          members: group.members,
-          status: "APPROVED" as const
-        },
-        events: [],
-        ranking: demoRanking
-      };
-    }
-  });
+    events: events.map((event) => ({
+      id: event.id,
+      slug: event.slug,
+      title: event.title,
+      groupName: event.group.name,
+      groupSlug: event.group.slug,
+      date: event.date.toISOString(),
+      location: event.location,
+      distance: event.distance,
+      level: event.level,
+      suggestedPace: event.suggestedPace ?? "Livre",
+      confirmedCount: event.attendances.length,
+      attendanceStatus: null,
+    })),
+    ranking: mappedRanking,
+  };
 }
 
 export async function listLeaderGroups(userId: string) {
@@ -135,7 +115,7 @@ export async function moderateGroup(input: {
     tenantId: tenant.id,
     status: input.status,
     reviewNotes: input.reviewNotes,
-    reviewedById: input.actorUserId
+    reviewedById: input.actorUserId,
   });
 
   await createAuditLog({
@@ -145,8 +125,8 @@ export async function moderateGroup(input: {
     entityId: input.groupId,
     action: input.status,
     metadata: {
-      reviewNotes: input.reviewNotes ?? null
-    }
+      reviewNotes: input.reviewNotes ?? null,
+    },
   });
 
   return group;

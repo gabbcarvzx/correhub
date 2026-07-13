@@ -25,7 +25,7 @@ export default async function CheckInPage({
   return (
     <AppShell footer={false}>
       <PageTransition>
-        <main className="app-shell grid min-h-[calc(100vh-88px)] items-center py-10">
+        <div className="app-shell grid min-h-[calc(100vh-88px)] items-center py-10">
           <Card variant="elevated" className="mx-auto w-full max-w-lg p-8">
             <Badge variant="secondary">Check-in seguro</Badge>
             <h1 className="mt-4 text-3xl font-black">{event.title}</h1>
@@ -37,7 +37,7 @@ export default async function CheckInPage({
             </div>
             <CheckInButton runEventId={event.id} />
           </Card>
-        </main>
+        </div>
       </PageTransition>
     </AppShell>
   );

@@ -14,6 +14,7 @@ interface GroupCardProps {
     meetingPoint: string
     members: number
     status: string
+    logoUrl?: string | null
   }
 }
 
@@ -22,9 +23,24 @@ export function GroupCard({ group }: GroupCardProps) {
     <MotionDiv whileHover={{ y: -4 }} className="h-full">
       <Card className="flex h-full flex-col p-5">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-bold">{group.name}</h3>
-            <p className="mt-2 text-sm leading-6 text-fg-secondary">{group.description}</p>
+          <div className="flex items-center gap-3">
+            {group.logoUrl ? (
+              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+                <img
+                  src={group.logoUrl}
+                  alt={group.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600">
+                {group.name.charAt(0)}
+              </div>
+            )}
+            <div>
+              <h3 className="text-lg font-bold">{group.name}</h3>
+              <p className="text-xs text-muted">{group.status}</p>
+            </div>
           </div>
           <Badge variant="outline" size="sm">{group.status}</Badge>
         </div>

@@ -1,72 +1,70 @@
-import { partners as demoPartners } from "@/features/demo/data/demo-data";
 import { findApprovedPartnerBySlug, findApprovedPartnersByTenant, findPendingPartners, updatePartnerModeration } from "@/features/partners/data/partners-repository";
 import type { PartnerCardModel } from "@/features/shared/types";
-import { withFallback } from "@/features/shared/services/fallback";
+import { getCachedSignedUrl } from "@/features/uploads/signed-url-cache";
 import { getCurrentTenant, getAuthenticatedTenant } from "@/lib/security/tenant";
 import { createAuditLog } from "@/features/admin/data/audit-log-repository";
+import { logger, getLogger } from "@/features/observability/logger";
 
 export async function listPublicPartners(): Promise<PartnerCardModel[]> {
   const tenant = await getCurrentTenant();
-  return withFallback({
-    query: async () => {
-      const records = await findApprovedPartnersByTenant(tenant.id);
-      return records.map((partner) => ({
-        slug: partner.slug,
-        name: partner.name,
-        category: partner.category,
-        description: partner.description,
-        coupon: partner.couponCode ?? "Sem cupom",
-        whatsapp: partner.whatsapp,
-        instagram: partner.instagram ?? "",
-        address: partner.address
-      }));
-    },
-    fallback: () => demoPartners,
-    isEmpty: (value) => value.length === 0
-  });
+  const log = getLogger({ tenantId: tenant.id });
+
+  const records = await findApprovedPartnersByTenant(tenant.id);
+
+  if (records.length === 0) {
+    log.info("partners.list.empty");
+    return [];
+  }
+
+  // Converte storage keys para signed URLs (com cache)
+  const signedUrls = await Promise.all(
+    records.map(async (partner) => ({
+      slug: partner.slug,
+      signedLogoUrl: partner.logoUrl ? await getCachedSignedUrl(partner.logoUrl) : null,
+    }))
+  );
+  const signedUrlMap = new Map(signedUrls.map((s) => [s.slug, s.signedLogoUrl]));
+
+  return records.map((partner) => ({
+    slug: partner.slug,
+    name: partner.name,
+    category: partner.category,
+    description: partner.description,
+    coupon: partner.couponCode ?? "Sem cupom",
+    whatsapp: partner.whatsapp,
+    instagram: partner.instagram ?? "",
+    address: partner.address,
+    featured: partner.featured,
+    logoUrl: signedUrlMap.get(partner.slug) ?? null,
+    gallery: partner.gallery,
+  }));
 }
 
 export async function getPublicPartnerDetails(slug: string) {
   const tenant = await getCurrentTenant();
-  return withFallback({
-    query: async () => {
-      const partner = await findApprovedPartnerBySlug(tenant.id, slug);
-      if (!partner) {
-        return null;
-      }
+  const log = getLogger({ tenantId: tenant.id, slug });
 
-      return {
-        slug: partner.slug,
-        name: partner.name,
-        category: partner.category,
-        description: partner.description,
-        coupon: partner.couponCode ?? "Sem cupom",
-        whatsapp: partner.whatsapp,
-        instagram: partner.instagram ?? "",
-        address: partner.address,
-        gallery: partner.gallery
-      };
-    },
-    fallback: () => {
-      const partner = demoPartners.find((entry) => entry.slug === slug);
+  const partner = await findApprovedPartnerBySlug(tenant.id, slug);
 
-      if (!partner) {
-        return null;
-      }
+  if (!partner) {
+    log.info("partners.details.not_found", { slug });
+    return null;
+  }
 
-      return {
-        slug: partner.slug,
-        name: partner.name,
-        category: partner.category,
-        description: partner.description,
-        coupon: partner.coupon,
-        whatsapp: partner.whatsapp,
-        instagram: partner.instagram,
-        address: partner.address,
-        gallery: []
-      };
-    }
-  });
+  const logoUrl = partner.logoUrl ? await getCachedSignedUrl(partner.logoUrl) : null;
+
+  return {
+    slug: partner.slug,
+    name: partner.name,
+    category: partner.category,
+    description: partner.description,
+    coupon: partner.couponCode ?? "Sem cupom",
+    whatsapp: partner.whatsapp,
+    instagram: partner.instagram ?? "",
+    address: partner.address,
+    logoUrl,
+    gallery: partner.gallery,
+  };
 }
 
 export async function listPendingPartnersForAdmin() {
@@ -86,7 +84,7 @@ export async function moderatePartner(input: {
     tenantId: tenant.id,
     status: input.status,
     reviewNotes: input.reviewNotes,
-    reviewedById: input.actorUserId
+    reviewedById: input.actorUserId,
   });
 
   await createAuditLog({
@@ -96,8 +94,8 @@ export async function moderatePartner(input: {
     entityId: input.partnerId,
     action: input.status,
     metadata: {
-      reviewNotes: input.reviewNotes ?? null
-    }
+      reviewNotes: input.reviewNotes ?? null,
+    },
   });
 
   return partner;

@@ -13,7 +13,7 @@ export default async function AdminDashboardPage() {
   return (
     <AppShell>
       <PageTransition>
-        <main className="app-shell py-8">
+        <div className="app-shell py-8">
           <h1 className="text-4xl font-black tracking-tight">Painel Administrativo</h1>
           <p className="mt-3 text-sm text-muted">Moderação de grupos e parceiros, métricas gerais e operação do tenant.</p>
           <section className="mt-8 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
@@ -39,7 +39,7 @@ export default async function AdminDashboardPage() {
               </div>
             </Card>
           </section>
-        </main>
+        </div>
       </PageTransition>
     </AppShell>
   );

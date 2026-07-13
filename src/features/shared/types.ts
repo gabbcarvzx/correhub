@@ -22,6 +22,7 @@ export interface GroupCardModel {
   meetingPoint: string;
   members: number;
   status: string;
+  logoUrl?: string | null;
 }
 
 export interface RankingCardModel {
@@ -41,4 +42,7 @@ export interface PartnerCardModel {
   whatsapp: string;
   instagram: string;
   address: string;
+  featured?: boolean;
+  gallery?: string[];
+  logoUrl?: string | null;
 }

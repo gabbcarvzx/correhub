@@ -13,7 +13,7 @@ export default async function AgendaPage() {
   return (
     <AppShell>
       <PageTransition>
-        <main className="app-shell py-8">
+        <div className="app-shell py-8">
           <SectionHeading eyebrow="Agenda" title="Treinos e eventos da semana" description="Descubra treinos, longões, corridas oficiais e encontros da comunidade." />
           {events.length === 0 ? (
             <EmptyState
@@ -28,8 +28,8 @@ export default async function AgendaPage() {
               ))}
             </section>
           )}
-        </main>
-      </PageTransition>
+      </div>
+    </PageTransition>
     </AppShell>
   );
 }

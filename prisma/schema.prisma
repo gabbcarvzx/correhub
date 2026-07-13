@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -47,6 +47,14 @@ enum RunLevel {
   ADVANCED
 }
 
+enum RunnerLevel {
+  BEGINNER
+  RUNNER
+  ATHLETE
+  ELITE
+  LEGEND
+}
+
 enum EventType {
   TRAINING
   OFFICIAL_RACE
@@ -61,22 +69,23 @@ enum AttendanceStatus {
 }
 
 model Tenant {
-  id          String           @id @default(cuid())
-  name        String
-  slug        String           @unique
-  status      TenantStatus     @default(ACTIVE)
-  plan        PlanType         @default(FREE)
-  timezone    String           @default("America/Recife")
-  users       User[]
-  groups      Group[]
-  runEvents   RunEvent[]
-  partners    Partner[]
-  achievements Achievement[]
-  settings    TenantSettings?
-  featureFlags FeatureFlag[]
-  notifications Notification[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id             String          @id @default(cuid())
+  name           String
+  slug           String          @unique
+  status         TenantStatus    @default(ACTIVE)
+  plan           PlanType        @default(FREE)
+  timezone       String          @default("America/Recife")
+  users          User[]
+  groups         Group[]
+  runEvents      RunEvent[]
+  partners       Partner[]
+  achievements   Achievement[]
+  settings       TenantSettings?
+  featureFlags   FeatureFlag[]
+  notifications  Notification[]
+  runnerOfWeeks  RunnerOfTheWeek[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model User {
@@ -89,9 +98,14 @@ model User {
   role              UserRole          @default(RUNNER)
   city              String?
   paceAvg           String?
+  bio               String?
+  level             RunnerLevel       @default(BEGINNER)
   preferredDistance DistanceType?
   totalAttendances  Int               @default(0)
   totalKm           Float             @default(0)
+  currentStreak     Int               @default(0)
+  longestStreak     Int               @default(0)
+  lastCheckInDate   DateTime?
   emailVerified     DateTime?
   deletedAt         DateTime?
   deletedBy         String?
@@ -102,6 +116,7 @@ model User {
   checkIns          CheckIn[]
   achievements      UserAchievement[]
   notifications     Notification[]
+  runnerOfWeeks     RunnerOfTheWeek[]
   accounts          Account[]
   sessions          Session[]
   createdAt         DateTime          @default(now())
@@ -112,56 +127,56 @@ model User {
 }
 
 model Group {
-  id            String          @id @default(cuid())
-  tenantId      String
-  slug          String
-  name          String
-  description   String
-  logoUrl       String?
-  coverUrl      String?
-  meetingPoint  String
-  meetingDays   String[]
-  meetingTimes  String[]
-  distances     DistanceType[]
-  leaderUserId  String
-  status        ApprovalStatus  @default(PENDING)
-  reviewNotes   String?
-  reviewedById  String?
-  reviewedAt    DateTime?
-  planType      PlanType        @default(FREE)
-  deletedAt     DateTime?
-  deletedBy     String?
-  tenant        Tenant          @relation(fields: [tenantId], references: [id])
-  leader        User            @relation("GroupLeader", fields: [leaderUserId], references: [id])
-  members       GroupMember[]
-  runEvents     RunEvent[]
-  posts         CommunityPost[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id           String          @id @default(cuid())
+  tenantId     String
+  slug         String
+  name         String
+  description  String
+  logoUrl      String?
+  coverUrl     String?
+  meetingPoint String
+  meetingDays  String[]
+  meetingTimes String[]
+  distances    DistanceType[]
+  leaderUserId String
+  status       ApprovalStatus  @default(PENDING)
+  reviewNotes  String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  planType     PlanType        @default(FREE)
+  deletedAt    DateTime?
+  deletedBy    String?
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  leader       User            @relation("GroupLeader", fields: [leaderUserId], references: [id])
+  members      GroupMember[]
+  runEvents    RunEvent[]
+  posts        CommunityPost[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@unique([tenantId, slug])
   @@index([tenantId, status, deletedAt])
 }
 
 model GroupMember {
-  id         String    @id @default(cuid())
-  tenantId   String
-  groupId    String
-  userId     String
-  role       UserRole  @default(RUNNER)
-  status     ApprovalStatus @default(APPROVED)
-  joinedAt   DateTime  @default(now())
-  deletedAt  DateTime?
-  deletedBy  String?
-  group      Group     @relation(fields: [groupId], references: [id])
-  user       User      @relation(fields: [userId], references: [id])
+  id        String         @id @default(cuid())
+  tenantId  String
+  groupId   String
+  userId    String
+  role      UserRole       @default(RUNNER)
+  status    ApprovalStatus @default(APPROVED)
+  joinedAt  DateTime       @default(now())
+  deletedAt DateTime?
+  deletedBy String?
+  group     Group          @relation(fields: [groupId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
 
   @@unique([groupId, userId])
   @@index([tenantId, status, deletedAt])
 }
 
 model RunEvent {
-  id              String        @id @default(cuid())
+  id              String       @id @default(cuid())
   tenantId        String
   groupId         String
   slug            String
@@ -182,12 +197,12 @@ model RunEvent {
   checkInClosesAt DateTime
   deletedAt       DateTime?
   deletedBy       String?
-  tenant          Tenant        @relation(fields: [tenantId], references: [id])
-  group           Group         @relation(fields: [groupId], references: [id])
+  tenant          Tenant       @relation(fields: [tenantId], references: [id])
+  group           Group        @relation(fields: [groupId], references: [id])
   attendances     Attendance[]
   checkIns        CheckIn[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   @@unique([tenantId, slug])
   @@index([tenantId, date, deletedAt])
@@ -228,10 +243,11 @@ model CheckIn {
 
   @@unique([runEventId, userId])
   @@index([tenantId, checkedInAt, deletedAt])
+  @@index([userId, checkedInAt, deletedAt])
 }
 
 model Partner {
-  id           String          @id @default(cuid())
+  id           String         @id @default(cuid())
   tenantId     String
   slug         String
   name         String
@@ -244,24 +260,24 @@ model Partner {
   whatsapp     String
   instagram    String?
   couponCode   String?
-  featured     Boolean         @default(false)
+  featured     Boolean        @default(false)
   ownerUserId  String?
-  status       ApprovalStatus  @default(PENDING)
+  status       ApprovalStatus @default(PENDING)
   reviewNotes  String?
   reviewedById String?
   reviewedAt   DateTime?
   deletedAt    DateTime?
   deletedBy    String?
-  tenant       Tenant          @relation(fields: [tenantId], references: [id])
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@unique([tenantId, slug])
   @@index([tenantId, status, deletedAt])
 }
 
 model Achievement {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   tenantId    String
   code        String
   name        String
@@ -269,7 +285,7 @@ model Achievement {
   icon        String
   ruleType    String
   ruleValue   Int
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
   users       UserAchievement[]
 
   @@unique([tenantId, code])
@@ -293,7 +309,7 @@ model RankingSnapshot {
   tenantId        String
   periodType      String
   periodKey       String
-  scopeType       String
+  scopeType       String   @default("CITY")
   groupId         String?
   userId          String
   attendanceCount Int
@@ -302,11 +318,28 @@ model RankingSnapshot {
   position        Int
   createdAt       DateTime @default(now())
 
+  @@unique([tenantId, periodType, periodKey, scopeType, userId])
   @@index([tenantId, periodType, periodKey])
+  @@index([tenantId, scopeType, periodKey])
+}
+
+model RunnerOfTheWeek {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  weekStart DateTime
+  weekEnd   DateTime
+  totalKm   Float
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([tenantId, weekStart])
+  @@index([tenantId, createdAt])
 }
 
 model CommunityPost {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   tenantId     String
   groupId      String
   authorUserId String
@@ -316,15 +349,15 @@ model CommunityPost {
   postType     String
   deletedAt    DateTime?
   deletedBy    String?
-  group        Group    @relation(fields: [groupId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  group        Group     @relation(fields: [groupId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([tenantId, createdAt, deletedAt])
 }
 
 model Notification {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   tenantId  String
   userId    String
   type      String
@@ -332,9 +365,9 @@ model Notification {
   message   String
   actionUrl String?
   readAt    DateTime?
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
 
   @@index([tenantId, userId, readAt])
 }
@@ -370,14 +403,14 @@ model FeatureFlag {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String        @id @default(cuid())
   tenantId   String
   actorUserId String?
   entityType String
   entityId   String
   action     String
   metadata   Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime      @default(now())
 
   @@index([tenantId, entityType, entityId])
 }

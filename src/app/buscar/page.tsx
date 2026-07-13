@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, SearchX, Users, Calendar, Store, ArrowRight, Clock, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/layout/app-shell"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,10 +11,22 @@ import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/ui/empty-state"
 import { PageTransition } from "@/components/ui/page-transition"
 import { useDebounce } from "@/hooks/use-debounce"
-import { groups, events, partners } from "@/features/demo/data/demo-data"
 import { cn } from "@/lib/utils"
 
-interface SearchResult {
+interface SearchGroup {
+  id: string; slug: string; name: string; description: string
+  meetingPoint: string; leader: string; members: number; href: string
+}
+interface SearchEvent {
+  id: string; slug: string; title: string; date: string; location: string
+  distance: string; type: string; groupName: string; groupSlug: string; href: string
+}
+interface SearchPartner {
+  id: string; slug: string; name: string; category: string
+  description: string; coupon: string; href: string
+}
+
+interface SearchSection {
   type: "Grupo" | "Evento" | "Parceiro"
   items: { id: string; title: string; subtitle: string; href: string; badge?: string }[]
 }
@@ -41,24 +54,28 @@ function clearRecentSearches() {
   localStorage.removeItem(RECENT_SEARCHES_KEY)
 }
 
-function normalize(text: string) {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-}
-
-function matchesQuery(text: string, query: string) {
-  return normalize(text).includes(normalize(query))
+function eventTypeBadge(type: string): string {
+  const map: Record<string, string> = {
+    TRAINING: "Treino",
+    LONG_RUN: "Longão",
+    OFFICIAL_RACE: "Corrida",
+    MEETUP: "Encontro",
+    CHALLENGE: "Desafio",
+  }
+  return map[type] ?? type
 }
 
 export default function SearchPage() {
   const [query, setQuery] = useState("")
   const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const router = useRouter()
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [isClient, setIsClient] = useState(false)
+  const [results, setResults] = useState<SearchSection[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const debouncedQuery = useDebounce(query, 300)
   const isDebouncing = query !== debouncedQuery
@@ -68,55 +85,85 @@ export default function SearchPage() {
     setRecentSearches(getRecentSearches())
   }, [])
 
-  const results: SearchResult[] = []
-
-  if (debouncedQuery.trim()) {
+  // Fetch from API when debounced query changes
+  useEffect(() => {
     const q = debouncedQuery.trim()
-
-    const matchedGroups = groups
-      .filter((g) => matchesQuery(g.name, q) || matchesQuery(g.description, q) || matchesQuery(g.leader, q))
-      .map((g) => ({
-        id: g.id,
-        title: g.name,
-        subtitle: g.leader,
-        href: `/grupos/${g.slug}`,
-        badge: `${g.members} membros`,
-      }))
-
-    const matchedEvents = events
-      .filter((e) => matchesQuery(e.title, q) || matchesQuery(e.groupName, q) || matchesQuery(e.location, q))
-      .map((e) => ({
-        id: e.id,
-        title: e.title,
-        subtitle: `${e.groupName} \u2022 ${e.location}`,
-        href: `/check-in/${e.slug}`,
-        badge: e.eventType === "TRAINING" ? "Treino" : e.eventType === "LONG_RUN" ? "Long\u00e3o" : "Desafio",
-      }))
-
-    const matchedPartners = partners
-      .filter((p) => matchesQuery(p.name, q) || matchesQuery(p.category, q) || matchesQuery(p.description, q))
-      .map((p) => ({
-        id: p.slug,
-        title: p.name,
-        subtitle: p.category,
-        href: `/parceiros/${p.slug}`,
-      }))
-
-    if (matchedGroups.length > 0) {
-      results.push({ type: "Grupo", items: matchedGroups })
+    if (!q) {
+      setResults([])
+      return
     }
-    if (matchedEvents.length > 0) {
-      results.push({ type: "Evento", items: matchedEvents })
-    }
-    if (matchedPartners.length > 0) {
-      results.push({ type: "Parceiro", items: matchedPartners })
-    }
-  }
+
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    setIsLoading(true)
+
+    fetch(`/api/v1/search?q=${encodeURIComponent(q)}&limit=5`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Search failed")
+        return res.json() as Promise<{
+          groups: SearchGroup[]
+          events: SearchEvent[]
+          partners: SearchPartner[]
+        }>
+      })
+      .then((data) => {
+        const sections: SearchSection[] = []
+
+        if (data.groups.length > 0) {
+          sections.push({
+            type: "Grupo",
+            items: data.groups.map((g) => ({
+              id: g.id,
+              title: g.name,
+              subtitle: g.leader,
+              href: g.href,
+              badge: `${g.members} membros`,
+            })),
+          })
+        }
+
+        if (data.events.length > 0) {
+          sections.push({
+            type: "Evento",
+            items: data.events.map((e) => ({
+              id: e.id,
+              title: e.title,
+              subtitle: `${e.groupName} • ${e.location}`,
+              href: e.href,
+              badge: eventTypeBadge(e.type),
+            })),
+          })
+        }
+
+        if (data.partners.length > 0) {
+          sections.push({
+            type: "Parceiro",
+            items: data.partners.map((p) => ({
+              id: p.id,
+              title: p.name,
+              subtitle: p.category,
+              href: p.href,
+            })),
+          })
+        }
+
+        setResults(sections)
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setResults([])
+        }
+      })
+      .finally(() => setIsLoading(false))
+  }, [debouncedQuery])
 
   const selectableItems = results.flatMap((r) =>
-    r.items.slice(0, 5).map((item) => item)
+    r.items.slice(0, 5)
   )
-
   const totalSelectable = selectableItems.length
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -136,10 +183,10 @@ export default function SearchPage() {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSelect = useCallback((_href: string) => {
+  const handleSelect = useCallback((href: string) => {
     saveRecentSearch(debouncedQuery.trim())
-  }, [debouncedQuery])
+    router.push(href)
+  }, [debouncedQuery, router])
 
   useEffect(() => {
     setSelectedIndex(-1)
@@ -151,14 +198,15 @@ export default function SearchPage() {
     Parceiro: Store,
   }
 
-  const showEmpty = isClient && debouncedQuery.trim() && !isDebouncing && results.length === 0
-  const showResults = isClient && debouncedQuery.trim() && results.length > 0
   const showInitial = isClient && !debouncedQuery.trim()
+  const showLoading = isClient && !!(debouncedQuery.trim() && (isDebouncing || isLoading))
+  const showEmpty = isClient && debouncedQuery.trim() && !showLoading && results.length === 0
+  const showResults = isClient && debouncedQuery.trim() && !showLoading && results.length > 0
 
   return (
     <AppShell>
       <PageTransition>
-        <main className="app-shell py-8">
+        <div className="app-shell py-8">
           <Card variant="elevated" className="p-6">
             <div className="flex items-center gap-3">
               <Search className="h-5 w-5 shrink-0 text-muted" />
@@ -167,10 +215,10 @@ export default function SearchPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Buscar grupo, corredor, evento ou parceiro"
+                placeholder="Buscar grupo, evento ou parceiro"
                 className="border-0 bg-transparent px-0"
               />
-              {isDebouncing && (
+              {showLoading && (
                 <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted" />
               )}
             </div>
@@ -207,19 +255,21 @@ export default function SearchPage() {
             <div ref={listRef} className="mt-8 space-y-8">
               {(() => {
                 let idx = 0
-                return results.map((group) => {
-                  const Icon = groupIcons[group.type]
-                  const hasMore = group.items.length > 5
-                  const showItems = group.items.slice(0, 5)
+                return results.map((section) => {
+                  const Icon = groupIcons[section.type]
+                  const hasMore = section.items.length >= 5
+                  const showItems = section.items.slice(0, 5)
 
                   return (
-                    <section key={group.type}>
+                    <section key={section.type}>
                       <div className="mb-3 flex items-center gap-2">
                         <Icon className="h-4 w-4 text-muted" />
                         <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
-                          {group.type}
+                          {section.type}
                         </h2>
-                        <span className="text-xs text-muted">({group.items.length})</span>
+                        <span className="text-xs text-muted">
+                          ({showItems.length})
+                        </span>
                       </div>
                       <div className="grid gap-3">
                         {showItems.map((item) => {
@@ -248,10 +298,10 @@ export default function SearchPage() {
                         })}
                         {hasMore && (
                           <Link
-                            href={`/${group.type === "Grupo" ? "grupos" : group.type === "Evento" ? "agenda" : "parceiros"}`}
+                            href={`/${section.type === "Grupo" ? "grupos" : section.type === "Evento" ? "agenda" : "parceiros"}`}
                             className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-3 text-sm text-muted transition-colors hover:border-border-strong hover:text-fg"
                           >
-                            Ver todos os {group.items.length} resultados
+                            Ver todos
                             <ArrowRight className="h-4 w-4" />
                           </Link>
                         )}
@@ -272,7 +322,7 @@ export default function SearchPage() {
               />
             </div>
           )}
-        </main>
+        </div>
       </PageTransition>
     </AppShell>
   )

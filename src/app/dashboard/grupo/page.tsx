@@ -14,7 +14,7 @@ export default async function GroupDashboardPage() {
   return (
     <AppShell>
       <PageTransition>
-        <main className="app-shell py-8">
+        <div className="app-shell py-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <Badge variant="secondary">Status {leaderDashboard.approvalStatus}</Badge>
@@ -49,7 +49,7 @@ export default async function GroupDashboardPage() {
               </div>
             </Card>
           </section>
-        </main>
+        </div>
       </PageTransition>
     </AppShell>
   );

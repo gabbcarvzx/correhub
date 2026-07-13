@@ -16,7 +16,7 @@ export async function PATCH(
   }
 ) {
   const ip = getClientIp(request);
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     identifier: `admin:${ip}`,
     config: RATE_LIMITS.ADMIN_ACTIONS,
     scope: "ip",

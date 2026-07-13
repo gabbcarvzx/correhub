@@ -6,7 +6,6 @@ export interface TenantContext {
   id: string;
   slug: string;
   name: string;
-  isDemo: boolean;
 }
 
 /**
@@ -17,6 +16,7 @@ export interface TenantContext {
  * - We verify the tenant exists and is ACTIVE in the DB
  * - For public/unauthenticated routes, we fall back to the first active tenant
  * - NEVER returns data from a different tenant than the session claims
+ * - NEVER returns mock/demo tenant data — throws error if no tenant found
  */
 export async function getCurrentTenant(): Promise<TenantContext> {
   const session = await auth();
@@ -40,20 +40,14 @@ export async function getAuthenticatedTenant(): Promise<TenantContext> {
     throw new Error("Authentication required to resolve tenant context.");
   }
 
-  const tenant = await getTenantById(session.user.tenantId);
-
-  if (tenant.isDemo) {
-    throw new Error("Authenticated user has no valid tenant.");
-  }
-
-  return tenant;
+  return getTenantById(session.user.tenantId);
 }
 
 async function getTenantById(tenantId: string): Promise<TenantContext> {
   try {
     const tenant = await db.tenant.findUnique({
       where: { id: tenantId },
-      select: { id: true, slug: true, name: true, status: true }
+      select: { id: true, slug: true, name: true, status: true },
     });
 
     if (!tenant) {
@@ -70,10 +64,13 @@ async function getTenantById(tenantId: string): Promise<TenantContext> {
       id: tenant.id,
       slug: tenant.slug,
       name: tenant.name,
-      isDemo: false
     };
   } catch (error) {
-    if (error instanceof Error && (error.message.includes("Tenant not found") || error.message.includes("Tenant is not active"))) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Tenant not found") ||
+        error.message.includes("Tenant is not active"))
+    ) {
       throw error;
     }
     logger.error("tenant.fetch_error", { tenantId, error: String(error) });
@@ -86,7 +83,7 @@ async function getFirstActiveTenant(): Promise<TenantContext> {
     const tenant = await db.tenant.findFirst({
       where: { status: "ACTIVE" },
       orderBy: { createdAt: "asc" },
-      select: { id: true, slug: true, name: true }
+      select: { id: true, slug: true, name: true },
     });
 
     if (tenant) {
@@ -94,19 +91,18 @@ async function getFirstActiveTenant(): Promise<TenantContext> {
         id: tenant.id,
         slug: tenant.slug,
         name: tenant.name,
-        isDemo: false
       };
     }
   } catch (error) {
-    logger.warn("tenant.first_active_failed", { error: String(error) });
+    logger.error("tenant.first_active_failed", { error: String(error) });
   }
 
-  return {
-    id: "demo-tenant",
-    slug: "sao-lourenco",
-    name: "São Lourenço da Mata",
-    isDemo: true
-  };
+  // Nenhum tenant ativo encontrado — lança erro controlado.
+  // Sem fallback mock: em produção, o primeiro tenant deve ser criado via seed.
+  logger.error("tenant.no_active_tenant", {});
+  throw new Error(
+    "Nenhum tenant ativo encontrado. Execute o seed para criar o primeiro tenant."
+  );
 }
 
 /**
@@ -121,7 +117,7 @@ export async function verifyTenantAccess(resourceTenantId: string): Promise<void
   if (resourceTenantId !== tenant.id) {
     logger.warn("tenant.cross_tenant_access_denied", {
       resourceTenantId,
-      actorTenantId: tenant.id
+      actorTenantId: tenant.id,
     });
     throw new Error("Cross-tenant access denied.");
   }

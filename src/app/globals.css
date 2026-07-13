@@ -71,9 +71,9 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(99, 102, 241, 0.08), transparent),
-    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(34, 211, 238, 0.06), transparent),
-    radial-gradient(ellipse 100% 50% at 50% 100%, rgba(99, 102, 241, 0.04), transparent),
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(99, 102, 241, 0.07), transparent),
+    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(34, 211, 238, 0.05), transparent),
+    radial-gradient(ellipse 100% 50% at 50% 100%, rgba(99, 102, 241, 0.03), transparent),
     var(--color-bg);
   color: var(--color-fg);
   font-family: "Inter", system-ui, -apple-system, sans-serif;
@@ -143,6 +143,16 @@ textarea:focus-visible {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
 .animate-fade-in {
   animation: fade-in 0.4s var(--transition-base) forwards;
 }
@@ -153,6 +163,14 @@ textarea:focus-visible {
 
 .animate-slide-up {
   animation: slide-up 0.5s var(--transition-base) forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
 .dark {
@@ -169,9 +187,15 @@ textarea:focus-visible {
 
 .dark body {
   background:
-    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(99, 102, 241, 0.06), transparent),
-    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(34, 211, 238, 0.04), transparent),
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(99, 102, 241, 0.08), transparent),
+    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(34, 211, 238, 0.05), transparent),
+    radial-gradient(ellipse 100% 50% at 50% 100%, rgba(52, 211, 153, 0.03), transparent),
     var(--color-bg);
+}
+
+.dark .glass-panel {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 41, 59, 0.6);
 }
 
 .glass-panel {
@@ -180,6 +204,28 @@ textarea:focus-visible {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: var(--shadow-sm);
+}
+
+/* Brand gradient accent line */
+.brand-accent {
+  height: 3px;
+  width: 48px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--color-brand-500), var(--color-accent-500));
+}
+
+/* Sporty gradient backgrounds */
+.bg-sport-gradient {
+  background: linear-gradient(135deg, var(--color-brand-600), var(--color-accent-600));
+}
+
+.bg-sport-gradient-light {
+  background: linear-gradient(135deg, var(--color-brand-50), var(--color-accent-50));
+}
+
+/* Animated number counter base */
+.stat-value {
+  @apply text-3xl font-black tracking-tight;
 }
 
 .app-shell {
@@ -196,5 +242,12 @@ textarea:focus-visible {
 @media (min-width: 1024px) {
   .app-shell {
     width: min(1200px, calc(100vw - 64px));
+  }
+}
+
+/* Mobile bottom nav safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

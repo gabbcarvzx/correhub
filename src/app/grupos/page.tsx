@@ -12,7 +12,7 @@ export default async function GroupsPage() {
   return (
     <AppShell>
       <PageTransition>
-        <main className="app-shell py-8">
+        <div className="app-shell py-8">
           <SectionHeading eyebrow="Grupos" title="Comunidades de corrida conectadas" description="Explore grupos por perfil, ritmo, local de encontro e dias de treino." />
           {groups.length === 0 ? (
             <EmptyState
@@ -27,8 +27,8 @@ export default async function GroupsPage() {
               ))}
             </section>
           )}
-        </main>
-      </PageTransition>
+      </div>
+    </PageTransition>
     </AppShell>
   );
 }

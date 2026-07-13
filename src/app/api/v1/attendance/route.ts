@@ -9,7 +9,7 @@ const attendanceSchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     identifier: `attendance:${ip}`,
     config: RATE_LIMITS.ATTENDANCE,
     scope: "ip",
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const ip = getClientIp(request);
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     identifier: `attendance:${ip}`,
     config: RATE_LIMITS.ATTENDANCE,
     scope: "ip",

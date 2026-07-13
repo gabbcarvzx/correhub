@@ -10,7 +10,7 @@ const checkInSchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkRateLimit({
     identifier: `check-in:${ip}`,
     config: RATE_LIMITS.CHECK_IN,
     scope: "ip",

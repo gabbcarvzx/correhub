@@ -194,30 +194,23 @@ async function main() {
     }
   });
 
-  const achievements = await prisma.achievement.createMany({
-    data: [
-      { tenantId: tenant.id, code: "FIRST_RUN", name: "Primeiro treino", description: "Concluiu o primeiro check-in.", icon: "medal", ruleType: "CHECKIN_COUNT", ruleValue: 1 },
-      { tenantId: tenant.id, code: "KM_50", name: "50 km", description: "Acumulou 50 km.", icon: "zap", ruleType: "KM_TOTAL", ruleValue: 50 },
-      { tenantId: tenant.id, code: "CHECKINS_10", name: "10 check-ins", description: "Registrou 10 presenças.", icon: "trophy", ruleType: "CHECKIN_COUNT", ruleValue: 10 }
-    ]
-  });
+  // Achievements via achievement-service (seeds todas as conquistas definidas)
+  const { seedAchievements } = await import("../src/features/achievements/services/achievement-service");
+  await seedAchievements(tenant.id);
 
-  void achievements;
-
-  const firstAchievement = await prisma.achievement.findFirstOrThrow({
-    where: {
-      tenantId: tenant.id,
-      code: "FIRST_RUN"
-    }
+  // Conquistas existentes do runner (teste)
+  const existingAch = await prisma.achievement.findFirst({
+    where: { tenantId: tenant.id, code: "KM_50" }
   });
-
-  await prisma.userAchievement.create({
-    data: {
-      tenantId: tenant.id,
-      userId: runner.id,
-      achievementId: firstAchievement.id
-    }
-  });
+  if (existingAch) {
+    await prisma.userAchievement.create({
+      data: {
+        tenantId: tenant.id,
+        userId: runner.id,
+        achievementId: existingAch.id
+      }
+    });
+  }
 
   await prisma.communityPost.create({
     data: {
